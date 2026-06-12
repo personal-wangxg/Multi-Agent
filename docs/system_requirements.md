@@ -104,6 +104,20 @@
 | 人机协同（Human-in-the-Loop） | 人类教师在关键节点对 Agent 进行审批、反馈或干预 |
 | DeepAgents | LangChain 官方推出的生产级 Agent Harness |
 | AgentScope | 阿里通义实验室推出的多智能体一站式开发框架 |
+| **知识网络（Knowledge Network）** | 由知识点节点和边关系组成的有向图，描述课程内容的结构化组织方式。不同于线性章节结构，知识网络中从起点到终点存在多条路径 |
+| **节点（Node）** | 知识网络中的最小学习单元。一个抽象知识点（如"二元一次方程"）可在三个不同层次上投影为 1~3 个节点 |
+| **概念层（Concept Layer）** | 节点的最高层次，关注"为什么"——理解本质、原理、推导与内在机制。对应研究生/研究型学习目标 |
+| **技能层（Skill Layer）** | 节点的中间层次，关注"何时用"——能在不同情境中判断何时使用、灵活迁移、选择策略。对应高职/本科学习目标 |
+| **工具层（Tool Layer）** | 节点的基础层次，关注"怎么操作"——掌握固定操作步骤、标准流程、模板化使用。对应专中职/工具性操作学习目标 |
+| **立体分层知识网络** | 知识网络的每个抽象知识点在概念/技能/工具三个层次上分别投影为独立节点，形成三维结构。学习路径可在同一知识点内跨越层次推进 |
+| **同层边（Intra-layer Edge）** | 连接同一层次中两个节点的边，表示同层次上的前置/后继关系（如"一元一次方程的解法" → "二元一次方程的解法"） |
+| **跨层边（Inter-layer Edge）** | 连接不同层次上相关节点的边，表示从工具到技能、或技能到概念的递进关系（如"消元法操作" → "建模策略选择"） |
+| **节点掌握（Mastery）** | 学生在某个节点上达到预设评估标准（不同层次的评估标准不同）后的状态标记。掌握后节点推荐引擎被触发 |
+| **节点推荐引擎（Node Recommendation Engine）** | 后台决策服务，每次学生在某节点上被标记为"掌握"后，基于知识网络依赖关系 + 学生历史表现 + 学生目标层次，推荐 2~4 个候选下一节点 |
+| **节点内错题闭环（In-node Error Loop）** | 学生在节点练习中答错后，系统触发的微观循环：错误诊断 → 针对性补充讲解 → 同类新题（难度微调）→ 再评估，直到掌握或达到重试上限 |
+| **动态学习路径（Dynamic Learning Path）** | 学生在知识网络中留下的实际行进轨迹。路径由每次"节点掌握 → 推荐 → 学生选择 → 移动"的迭代过程动态涌现，而非课前预先规划 |
+| **教学评估指标（Teaching Evaluation Metrics）** | 在课程规划阶段设计的、用于后续评估教学过程的量表/问卷/观测量表。与知识网络结构关联，不是事后补做 |
+| **思政融合设计** | 备课阶段与教案/学案同步设计的思政元素融合方案。由 Agent 提出"在哪个节点、融什么、如何融"的建议，由教师确认/修改 |
 
 ---
 
@@ -111,12 +125,17 @@
 
 ### 2.1 业务背景
 
-随着大模型在教育领域的深入应用，单智能体方案已难以覆盖"教学场景多样、角色分工复杂、长链路任务分解"等需求。市面上常见的痛点包括：
+本系统的定位是**课堂教学的补充与延伸**，而非代替课堂教学。课堂课时有限，教师不可能面面俱到，因此需要在师生之间共享一个"知识网络"——教师明确哪些内容在课堂上讲，哪些需要学生自学，学生则在系统引导下按个性化路径推进学习。
 
-1. **场景适配成本高**：不同教学场景（备课、授课、练习、批改）对 Agent 能力要求差异大，需要反复定制与调试
-2. **智能体协作能力弱**：单 Agent 难以同时胜任教师、助教、学生、评委等多重角色
-3. **可配置性差**：教师缺乏技术能力，无法根据教学需要灵活调整 Agent 组合
-4. **可观测性不足**：Agent 的决策过程黑盒化，教师难以追溯与干预
+现有方案普遍存在以下结构性不足：
+
+1. **线性章节为主，缺乏知识网络思维**：教材和课程设计几乎都是线性结构（第1章→第2章→...），不同起点、不同目标的学生被迫走同一条路
+2. **不分层次的知识点设计**：同一知识点对不同培养目标的学生（专中职/高职本科/研究型）的掌握深度要求不同，但现有方案要么一刀切要么需要手动拆分
+3. **学习路径缺乏动态性**：路径在课前就被教师规划好，无法根据学生实际表现动态调整
+4. **错题处理过于简单**：学生答错后通常只是给出"正确答案+讲解"，缺乏"诊断→补充→再练习→确认掌握"的闭环机制
+5. **"教师+Agent共创"能力弱**：单 Agent 单向输出为主，缺乏"Agent 生成多方案 → 教师标注修改 → Agent 迭代 → 教师确认"的协同工作流
+6. **教学评估与教学过程脱节**：评估指标事后补做，而非在课程规划阶段就与知识网络关联设计
+7. **缺乏思政融合的系统设计**：思政元素要么缺失，要么依赖教师个人经验，缺乏结构化的"在哪里融、融什么、如何融"的设计
 
 ### 2.2 建设目标
 
@@ -125,10 +144,16 @@
 | GOAL-01 | 动态编排能力 | 根据教学场景自动生成合适的 Agent 组合与协作方式 |
 | GOAL-02 | 框架融合能力 | 兼容 DeepAgents 与 AgentScope，发挥各自优势 |
 | GOAL-03 | 低代码配置能力 | 教师通过可视化/配置方式完成 Agent 组合，无需编码 |
-| GOAL-04 | 人机协同能力 | 支持教师在关键节点审批、反馈、打断与调整 |
+| GOAL-04 | 人机协同能力 | 支持教师在关键节点审批、反馈、打断与调整——"教师+Agent共创" |
 | GOAL-05 | 可观测与可审计 | Agent 执行过程可追踪、可回放、可审计 |
 | GOAL-06 | 配置复用能力 | 生成的配置可保存、加载、导出为模板复用 |
 | GOAL-07 | Harness 约束能力 | 通过提示词模板、任务待办清单、结构化校验、工具沙箱等手段，将 Agent 的行为与输出"驾驭"在需求范围内，避免自由发散 |
+| **GOAL-08** | **立体分层知识网络** | 支持概念层/技能层/工具层三维结构，同一知识点可在不同层次上投影为独立节点，学生路径可跨越层次推进 |
+| **GOAL-09** | **动态学习路径推荐** | 不预先规划完整路径，而是每次学生完成一个节点后，由节点推荐引擎基于网络依赖+学生表现+目标层次动态推荐 2~4 个候选下一节点 |
+| **GOAL-10** | **节点内错题闭环** | 学生答错后，自动触发"错误诊断→补充讲解→同类新题→再评估"的微观循环，直到掌握或达到上限 |
+| **GOAL-11** | **知识网络动态维护** | 基于累积的学生学习数据，后台持续检测网络中的"实际困难节点""过于轻松节点""衔接断层"，定期生成优化建议报告供教师参考 |
+| **GOAL-12** | **教学评估闭环** | 评估指标在课程规划阶段与知识网络关联设计，教学结束后用同一套指标自动分析教学过程，生成反思建议，反哺下一轮备课优化 |
+| **GOAL-13** | **思政融合设计能力** | 备课阶段由 Agent 提出"在哪个节点、融什么、如何融"的结构化建议，教师确认/修改后落到教案与学案中 |
 
 ### 2.3 非目标（Out of Scope）
 
@@ -136,8 +161,11 @@
 
 - 自研大模型推理引擎（使用外部 LLM API）
 - 独立的教学内容库建设（依赖已有教学资料）
-- 面向学生端 C 端产品化上线（聚焦教师辅助工具）
+- 面向学生端 C 端产品化上线（聚焦教师辅助 + 学生个性化学习路径支持）
 - 完整的在线课堂视频/直播系统（聚焦 Agent 协同能力）
+- 知识网络内容的**自动生成**（知识网络由教师+Agent共创搭建，而非 Agent 单方面自动"发现"知识点）
+- 学习路径的**强制统一化**（系统推荐而非强制，学生对下一节点有选择权）
+- 思政内容的**审核与合规判断**（Agent 仅给出融合建议，内容合规性由教师最终确认）
 
 ---
 
@@ -147,66 +175,107 @@
 
 | 角色 | 描述 | 典型操作 |
 |-----|------|---------|
-| 教师 | 核心用户，使用系统完成教学任务 | 输入课程信息、确认 Agent 方案、监控执行、保存配置 |
-| 教研人员 | 设计与优化教学场景模板 | 定义新场景、调整 Agent 角色、沉淀模板 |
-| 运维管理员 | 部署与维护系统 | 管理模型 API Key、监控运行状态、维护部署环境 |
+| **教师** | 核心用户，规划课程、使用系统完成教学任务、查看学生表现 | 输入课程信息、确认 Agent 方案、监控执行、保存配置、审核思政融合建议、查看教学评估报告 |
+| **学生** | 关键学习用户，在虚拟教室中按动态推荐路径完成各节点学习 | 进入虚拟教室学习、完成练习、选择下一节点、查看错题补救、跟随推荐路径推进 |
+| 教研人员 | 设计与优化教学场景模板 | 定义新场景、调整 Agent 角色、沉淀模板、审阅知识网络优化建议 |
+| 运维管理员 | 部署与维护系统 | 管理模型 API Key、监控运行状态、维护部署环境、管理后台服务启停 |
 | 系统开发者 | 扩展与定制 Agent 能力 | 新增 Agent 类型、开发插件、调试协议层 |
 
 ### 3.2 典型业务场景
 
-本系统至少支持以下 5 类教学场景，每类场景提供详细交互流程、Agent 角色定义、I/O 规格及边界异常处理。
+本系统共支持 9 个场景，按时间阶段和触发方式分类如下：
+
+| 阶段 | 场景编号 | 场景名称 | 触发方式 | 本质 |
+|-----|---------|---------|---------|-----|
+| **课前** | SCENE-001 | **课程规划** | 教师主动发起 | 师生共创：搭建立体分层知识网络 |
+| **课前** | SCENE-002 | **备课辅助** | 课程规划完成后，教师按章节发起 | 为知识网络中每个节点生成教案+学案+资源 |
+| **课中/课后** | SCENE-003 | **虚拟教室** | 学生主动进入 | 学生在单个节点上的学习体验 |
+| **课中/课后** | SCENE-004 | **节点内错题闭环** | 学生在 SCENE-003 中答错时自动触发 | 微观学习过程中的子流程 |
+| **课后** | SCENE-005 | **节点推荐引擎** | 学生标记掌握某节点后触发 | 后台决策服务 |
+| **课后** | SCENE-006 | **作业批改** | 教师或系统自动发起 | 节点掌握评估 |
+| **课后/定期** | SCENE-007 | **学情分析** | 教师或定期自动 | 学生/班级学习画像 |
+| **课程末** | SCENE-008 | **教学评估** | 课程/单元结束后教师发起 | 教师教学过程反思 |
+| **后台持续** | SCENE-009 | **知识网络动态维护** | 定期自动+教师手动 | 后台 meta-scenario：基于学习数据的网络优化建议 |
+
+每个场景均提供详细的 Agent 角色定义、交互流程、I/O 规格及边界异常处理。
 
 ### 3.2.1 SCENE-001：课程规划
 
-**场景目标**：教师输入课程名称与简介，系统自动生成分章节教学大纲（章节标题 + 课时分配 + 教学目标 + 重难点）与学期进度计划表。
+**场景目标**：教师输入课程基本信息后，教师与 Agent 协同迭代，最终生成立体分层知识网络 + 教学目标体系 + 教学方法选择 + 学习效果检验方式 + 教学评估指标体系。
+
+**核心设计原则**：
+1. 教师+Agent **共创**而非 Agent 单向输出：Agent 生成多方案 → 教师标注修改 → Agent 迭代 → 教师确认
+2. 知识网络是**立体分层**而非线性章节：概念层(为什么) → 技能层(何时用) → 工具层(怎么操作)**，每个抽象知识点在不同层次上形成独立节点
+3. 评估指标在**规划阶段**完成，而非事后补做
+4. 每个节点都有独立的布鲁姆分类、难度标记、是否可自学标记
 
 #### Agent 角色定义
 
 | Agent 角色 | 框架 | 职责边界 | 提示词关键词 |
 |-----------|------|---------|------------|
-| 课程规划 Agent | DeepAgents | 接收用户需求 → 拆解章节结构 → 生成大纲 | "你是资深课程设计专家，擅长将课程目标分解为可执行的教学单元" |
-| 教学研究 Agent | DeepAgents | 检索相关知识点 → 标注重难点 → 推荐教学活动 | "你是学科专家，专注于知识点的深度分析与教学难点识别" |
-| 大纲整合 Agent | DeepAgents | 汇总前两个 Agent 输出 → 格式化为标准大纲 → 写入 VFS | "你是文档工程师，负责将多源信息整合为结构化教学文档" |
+| 知识网络构建 Agent | DeepAgents | 解析课程描述，生成初始节点集合与边关系提议 | "你是资深课程设计专家，擅长将课程目标分解为概念/技能/工具三层节点体系" |
+| 教学目标设计 Agent | DeepAgents | 基于节点结构生成知识目标/能力目标/素质目标 | "你是教育目标设计专家，按布鲁姆分类法设计分层次学习目标" |
+| 教学方法匹配 Agent | DeepAgents | 根据节点类型和难度推荐教学方法（讲授/讨论/实验/探究等） | "你是教学法专家，针对不同层次的节点推荐合适的教学方法" |
+| 评估指标设计 Agent | DeepAgents | 设计后续教学评估所用的量表/问卷/观测量表 | "你是教育评估专家，能为知识网络设计配套评估指标" |
 
 #### 交互流程
 
 ```
-教师输入
-  │
-  ▼
-SceneAnalyzer 识别 → SCENE-001
-  │
-  ▼
-ConfigGenerator 生成 [规划Agent + 研究Agent + 整合Agent]
+教师输入课程信息
   │
   ▼
   ┌──────────────────────────────────────┐
-  │ 规划Agent (DeepAgents)               │
-  │   write_todos: [分析课程目标, 拆章节, 生成大纲草案] │
-  │   VFS: /workspace/planning/draft.md  │
+  │ 知识网络构建 Agent                 │
+  │ 生成提案：                       │
+  │   · 概念层节点：N个概念节点+边   │
+  │   · 技能层节点：N个技能节点+边   │
+  │   · 工具层节点：N个工具节点+边    │
+  │   · 跨层边：哪些节点跨层连接      │
+  │   · 每个节点的 bloom_level/difficulty/can_self_learn |
   └──────────────┬───────────────────────┘
-                 │ VFS 写入大纲草案
+                 │ 初次提案
+                 ▼
+         教师审阅并标注（接受/修改/删除
+         /新增节点/调整边关系
+                 │
                  ▼
   ┌──────────────────────────────────────┐
-  │ 研究Agent (DeepAgents)               │
-  │   基于大纲草案，补充知识点、重难点    │
-  │   VFS: /workspace/research/output.md │
+  │ 知识网络构建 Agent（迭代版本）     │
+  │ 吸收教师标注，重新生成优化提案      │
   └──────────────┬───────────────────────┘
-                 │ VFS 读取 + 整合
+                 │（可多轮迭代，直到教师确认）
                  ▼
   ┌──────────────────────────────────────┐
-  │ 整合Agent (DeepAgents)               │
-  │   合并两份 VFS → 输出最终大纲        │
-  │   触发 Harness 校验                  │
+  │ 教学目标设计 Agent               │
+  │ 为已确认的知识网络节点生成：   │
+  │   · 每个节点的知识目标         │
+  │   · 能力目标                    │
+  │   · 素质目标                    │
   └──────────────┬───────────────────────┘
                  │
                  ▼
-         Harness Schema 校验
+  ┌──────────────────────────────────────┐
+  │ 教学方法匹配 Agent                │
+  │ 按节点特征推荐教学方法+课堂结构  │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 评估指标设计 Agent                │
+  │ 输出评估指标体系（量表/问卷/观测表）  │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+          教师最终确认 → 写入 VFS 持久化
+          输出：立体分层知识网络 JSON
+                 │
+                 ▼
+            Harness Schema 校验：
                  │
           ┌──────┴──────┐
           │ 通过        │ 不通过
           ▼             ▼
-       展示给教师    自动重试（≤3次）
+        保存配置       自动重试（≤3次）
                           │
                           ▼
                     人工干预提示
@@ -215,63 +284,109 @@ ConfigGenerator 生成 [规划Agent + 研究Agent + 整合Agent]
 #### 输入规格
 
 ```yaml
-course_name: "初中数学：一元二次方程"       # 必填，字符串，最大 100 字
-course_desc: "面向初三学生，讲解一元二次   # 必填，字符串，最大 500 字
-             方程的求解与应用"
-difficulty: "中等"                          # 选填，枚举 [简单/中等/困难]
-total_periods: 10                          # 必填，整数，1~100
-teaching_materials: []                     # 选填，教学材料 URL 列表
-teacher_id: "t_001"                        # 必填，教师唯一标识
+course_name: "初中数学：一元二次方程"   # 必填，课程名称
+course_desc: "面向初三学生，讲解一元二次方程的求解与应用"  # 必填
+target_student_level: "初中三年级            # 必填，目标学生层次
+                    层级，影响节点的深度与难度配置
+teaching_periods: 12                             # 必填，总课时数
+teacher_id: "t_001"                           # 必填
 ```
 
-#### 输出规格
+#### 输出规格（知识网络核心结构摘要）
 
 ```yaml
-outline:
-  course_name: "初中数学：一元二次方程"
-  total_periods: 10
-  chapters:
-    - index: 1
-      title: "一元二次方程的概念引入"
-      periods: 2
-      objectives:
-        - "理解一元二次方程的标准形式"
-        - "能判断一个方程是否为一元二次方程"
-      key_points: ["标准形式 ax²+bx+c=0", "系数条件 a≠0"]
-      difficult_points: ["一元二次方程与以前学过的方程的区别"]
-      activities: ["生活实例引入", "概念辨析练习"]
-    - index: 2
-      title: "配方法求解一元二次方程"
-      periods: 3
-      objectives: [...]
-      key_points: [...]
-      difficult_points: ["配方的步骤顺序"]
-      activities: [...]
-  progress_table:
-    week: 1
-    content: "第1-2章：概念引入与配方法"
-    periods: 5
-created_at: "2026-06-12T10:00:00Z"
+knowledge_network:
+  metadata:
+    course_name: "初中数学：一元二次方程"
+    target_level: "初中三年级"
+    total_periods: 12
+    created_at: "2026-06-12T10:00:00Z
+    version: "1.0
+
+  nodes:                                 # 所有节点列表
+    - id: "concept_linear_equations"     # 节点 ID，前缀 concept/skill/tool
+      layer: "concept"                     # concept / skill / tool
+      topic: "线性方程组的本质"
+      title: "理解线性方程组的几何意义"
+      bloom_level: "analyze"
+      difficulty: 3
+      can_self_learn: true
+      estimated_periods: 2
+      in_teaching_materials: []
+      teaching_objectives:
+        knowledge: ["理解线性方程组的解的存在性与唯一性"]
+        ability: ["能从几何角度分析线性方程组的解"]
+        quality: ["体会数学的严谨与美"]
+      teaching_method_suggested: "探究法"
+      expected_student_output_type: "书面推导"
+      assessment_criteria: "能独立完成几何推导过程
+
+    - id: "skill_model_solve_system"
+      layer: "skill"
+      title: "根据实际问题建立数学模型"
+      bloom_level: "apply"
+      difficulty: 4
+      can_self_learn: false
+      estimated_periods: 3
+      teaching_objectives: ...
+
+    - id: "tool_elimination_method"
+      layer: "tool"
+      title: "消元法求解二元一次方程组
+      bloom_level: "apply"
+      difficulty: 2
+      can_self_learn: true
+      estimated_periods: 2
+      teaching_objectives: ...
+
+  edges:                                 # 节点间的边关系
+    - from: "tool_elimination_method"
+      to: "skill_model_solve_system"
+      relation_type: "is_prerequisite"     # prerequisite / is_prerequisite / same_topic_cross_layer
+    - from: "skill_model_solve_system"
+      to: "concept_linear_equations"
+      relation_type: "supports_understanding"
+
+  # 教学评估指标（课程规划阶段同步完成
+  evaluation_metrics:
+    - metric_id: "m_001"
+      target_node: "concept_linear_equations"
+      metric_type: "observational_scale"
+      content: "学生能否在实际情境中正确选择合适的求解策略"
+      observation_target: "课堂表现
+      scoring_rubric: "1-5分评估依据表现水平
+    - metric_id: "m_002"
+      ...
+
 agent_session_id: "sess_course_planning_001"
+iteration_count: 3    # 师生共创迭代次数
+
+created_at: "2026-06-12T10:15:00Z"
 ```
 
-#### Schema 校验规则（Harness）
+#### 校验规则（Harness）
 
 ```json
 {
-  "required": ["outline", "course_name", "total_periods"],
+  "required": ["knowledge_network"],
   "properties": {
-    "outline": {
-      "type": "object",
-      "required": ["chapters", "progress_table"],
-      "chapters": {
-        "type": "array",
-        "minItems": 1,
-        "maxItems": 20,
-        "items": {
-          "required": ["index", "title", "periods", "objectives", "key_points"],
-          "periods": { "type": "integer", "minimum": 1, "maximum": 20 }
+    "nodes": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "required": ["id", "layer", "title", "bloom_level", "difficulty", "can_self_learn"],
+        "layer": {
+          "enum": ["concept", "skill", "tool"]
+        },
+        "bloom_level": {
+          "enum": ["remember", "understand", "apply", "analyze", "evaluate", "create"]
         }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "required": ["from", "to", "relation_type"]
       }
     }
   }
@@ -282,392 +397,886 @@ agent_session_id: "sess_course_planning_001"
 
 | 异常场景 | 系统行为 |
 |---------|---------|
-| 输入课程名为空 | 返回错误码 ERR-INPUT-001，拒绝执行，提示必填字段 |
-| 总课时与章节分配不符（差值 > 1） | 触发教师确认：实际分配 N 课时与输入 M 课时不一致，是否自动调整？ |
-| 研究 Agent 3 次重试后仍输出空知识点 | 降级：跳过研究 Agent，仅由规划 Agent 输出基础大纲 |
-| 校验失败（章节结构不完整） | Harness 自动触发重试，记录失败原因到审计日志 |
-| Token 超预算 | 强制压缩：研究 Agent 中间产物卸载至 VFS，从上下文移除全文 |
+| 输入课程名为空 | 返回错误码 ERR-INPUT-001，拒绝执行 |
+| 知识网络生成后节点数与总课时不匹配 | 触发教师确认：实际N节点所需课时估算为 M，与输入 total_periods 差距较大，是否调整？ |
+| 教师连续3次修改后同一节点 | 记录该节点为"争议节点"，在后续备课阶段标记需特别关注 |
+| 所有节点全为工具层 | 触发告警：建议检查是否缺乏概念层设计 |
+| 校验失败（节点结构缺失必填字段 | Harness 自动触发重试，记录失败原因 |
+| Token 超预算 | 中间产物拆分后重试 |
+| 迭代超过5次仍未确认 | 记录为搁置配置，提示教师可能需要重新审视课程范围 |
 
 ---
 
 ### 3.2.2 SCENE-002：备课辅助
 
-**场景目标**：教师指定某章节，系统生成配套教案（教学目标 / 教学过程 / 练习题 / 课件大纲 / 教学反思）。
+**场景目标**：课程规划完成后，教师按知识点节点发起备课，系统为知识网络中的每个节点生成：
+1. 教案（教师课堂授课部分，仅对非自学节点）
+2. 学案（覆盖课堂与自学所有环节的学习脚手架）
+3. 切片化教学资源（教材节选/PPT/视频/练习题库）
+4. 思政融合设计（在哪个节点、融什么、如何融）
+5. 课堂/自学标记（区分哪些内容在课堂讲、哪些需自学）
+
+**核心设计原则**：
+- 为知识网络的**每个节点**独立生成教学包
+- 区分"课堂内容"与"自学内容"
+- 教学资源按节点切片，而非按章节打包
+- 思政融合由 Agent 提案 + 教师确认/修改，不自动输出内容
 
 #### Agent 角色定义
 
-| Agent 角色 | 框架 | 职责边界 |
-|-----------|------|---------|
-| 教案生成 Agent | DeepAgents | 按章节生成结构化教案各节内容 |
-| 习题设计 Agent | DeepAgents | 生成基础题 / 提高题 / 拓展题，标注难度与答案 |
-| 课件设计 Agent | DeepAgents | 生成 PPT 课件大纲（每页标题 + 要点 + 建议停留时间） |
-| 质量审核 Agent | DeepAgents | 审核教案与习题的难度梯度、知识点覆盖度 |
+| Agent 角色 | 框架 | 职责边界 | 提示词关键词 |
+|-----------|------|---------|------------|
+| 教材解析 Agent | DeepAgents | 解析教师提供的教材/讲义，映射到知识网络节点 | "你是教材分析专家，擅长从原始教材中提取与知识点对应的内容片段" |
+| 教案设计 Agent | DeepAgents | 针对非自学节点生成课堂教案（导入/新授/练习/总结） | "你是教案设计专家，关注课堂节奏把控与重难点突破" |
+| 学案设计 Agent | DeepAgents | 针对所有节点生成学生自学/课堂学案（引导问题/脚手架/活动建议） | "你是学习体验设计专家，擅长设计引导式学习脚手架" |
+| 教学资源 Agent | DeepAgents | 按节点生成或匹配资源片段（题库/PPT建议/视频要点） | "你是教育资源库建设专家，擅长为特定知识点生成针对性练习" |
+| 思政融合 Agent | DeepAgents | 为每个节点提出思政元素融合建议（位置/元素/方式） | "你是课程思政设计专家，擅长从学科内容中发掘价值引导切入点" |
+
+#### 交互流程
+
+```
+SCENE-001 输出（已确认的知识网络）
+  │
+  ▼
+教师选择需备课的节点范围（默认：一次处理一个节点或一组相关节点
+  │
+  ▼
+教师提供教材/讲义/已有PPT（可选）
+  │
+  ▼
+  ┌──────────────────────────────────────┐
+  │ 教材解析 Agent                     │
+  │ 将教材内容映射到节点               │
+  │ 标注：课堂内容 vs 自学内容          │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 教案设计 Agent                       │
+  │ 针对课堂节点生成完整教案            │
+  │ 教学过程（导入/新授/练习/总结）     │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 学案设计 Agent                      │
+  │ 覆盖课堂+自学全环节                 │
+  │ 引导问题+脚手架+活动建议           │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 教学资源 Agent                      │
+  │ 生成题库/PPT要点/资源引用          │
+  │ 按节点切片化存储                    │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 思政融合 Agent                       │
+  │ 仅给出结构化建议（不直接输出内容    │
+  │ 建议内容：                           │
+  │   · 目标节点 id                     │
+  │   · 思政元素                        │
+  │   · 融入方式                        │
+  │   · 预计时长                        │
+  │   · 活动建议（讨论/案例/角色扮演）  │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+           教师审阅 + 修改 + 确认
+                 │
+                 ▼
+         Harness Schema 校验：
+                 │
+          ┌──────┴──────┐
+          │ 通过        │ 不通过
+          ▼             ▼
+         持久化      自动重试（≤3次）
+                 │
+                 ▼
+             人工干预提示
+
+输出：每个节点一个完整教学包（教案+学案+资源+思政建议）
+```
 
 #### 输入规格
 
 ```yaml
-chapter_ref: "ch_001"                              # 必填，引用课程规划阶段生成的章节 ID
-outline_version: "v1.0"                            # 必填，大纲版本号
-subject: "数学"                                     # 必填
-grade: "初三"                                       # 必填
-exercise_count: 5                                  # 必填，基础题数量，1~20
-exercise_hard_count: 3                             # 必填，提高题数量，0~10
-include_reflection: true                           # 选填，是否包含教学反思模块
+knowledge_network_ref: "kn_001"                  # 必填，引用课程规划阶段生成的知识网络
+node_range: ["tool_elimination_method", "skill_model_solve_system"]   # 必填，本次备课覆盖哪些节点
+teacher_materials:                                # 选填，教师提供的原始教学材料
+  - type: "textbook"
+    content: "教材第一章：方程..."
+  - type: "ppt"
+    content: "已有的授课PPT要点..."
+include_ideological_integration: true           # 必填，是否生成思政融合建议
+instruction_for_student: false                  # 选填，是否区分自学内容
+teaching_language: "中文"                       # 必填
 ```
 
-#### 输出规格
+#### 输出规格（按节点输出，每个节点独立一份）
 
 ```yaml
-lesson_plan:
-  chapter_ref: "ch_001"
-  teaching_objectives:
-    - type: "知识与技能"
-      items: ["掌握配方法步骤", "能熟练求解一元二次方程"]
-    - type: "过程与方法"
-      items: ["经历配方法发现过程", "体会转化思想"]
-    - type: "情感态度"
-      items: ["增强数学学习信心"]
-  teaching_process:
-    - phase: "导入"
-      duration: 5
-      content: "用实际问题引出一元二次方程概念"
-      method: "情境创设"
-    - phase: "新授"
-      duration: 20
-      content: "配方法步骤讲解与练习"
-      method: "讲授+探究"
-  exercises:
-    basic:
-      - id: "ex_b_001"
-        content: "将下列方程化为标准形式：x²+4x+1=0"
-        answer: "x²+4x+1=0（已是标准形式，a=1,b=4,c=1）"
-    improve:
-      - id: "ex_i_001"
-        content: "用配方法解：x²-6x+5=0"
-        answer: "x²-6x+5=0 → (x-3)²=4 → x-3=±2 → x=5或x=1"
-  presentation_outline:
-    - slide: 1
-      title: "导入：生活中的方程"
-      points: ["销售利润问题", "面积切割问题"]
-      suggested_duration: 5
-    - slide: 2
-      title: "新授：配方法三步曲"
-      points: ["第一步：移项", "第二步：配方", "第三步：求解"]
-      suggested_duration: 15
-  reflection_prompt: "本次备课重点关注配方法中'配方'步骤的直观呈现，建议用图形辅助学生理解。"
+teaching_package:
+  target_node_id: "tool_elimination_method"
+  target_node_title: "消元法求解二元一次方程组"
+  target_node_layer: "tool"
+  is_classroom_content: true
+  is_self_study_enabled: true
+
+  lesson_plan:
+    teaching_objectives:
+      knowledge: ["掌握消元法三步操作：变形、消元、求解"]
+      ability: ["能在给定练习题中熟练运用消元法"]
+      quality: ["培养严谨的推理习惯"]
+    teaching_process:
+      - phase: "导入"
+        duration_minutes: 5
+        content: "以购物问题引入：已知2个苹果+3个梨=20元，3个苹果+2个梨=22元，求单价"
+        method: "情境引入+问答法"
+      - phase: "新授"
+        duration_minutes: 20
+        content: "消元法步骤演示：①变形使某系数相同 ②两式相减消去一个变量 ③求解剩余变量"
+        method: "讲授+探究法"
+      - phase: "练习"
+        duration_minutes: 10
+        content: "学生独立完成3道练习题，教师巡视答疑"
+        method: "练习法"
+      - phase: "总结"
+        duration_minutes: 5
+        content: "总结消元法要点：关键步骤是'消元'，注意符号变化"
+        method: "问答总结"
+
+  student_guide:
+    pre_class: ["阅读教材第1-3页，尝试完成课前预习思考题1-2"]
+    in_class_activities: ["跟随教师演示，记录消元法的关键步骤"]
+    post_class: ["完成课后练习1-5题，记录不会的题目编号"]
+    self_study_scaffold:
+      guiding_questions:
+        - "消元法的核心思想是什么？"
+        - "如何选择消去哪个变量可以使计算更简单？"
+      hints: ["提示1：先观察两式中系数最简单的变量", "提示2：如果两式某变量系数相同或相反，直接加减"]
+      extension_activities: ["尝试用消元法解决你自己创设的一个实际问题"]
+
+  resources:
+    exercises:
+      basic:
+        - id: "ex_b_001"
+          difficulty: 2
+          content: "解方程组：2x+3y=13, 3x+2y=12"
+          answer: "x=2, y=3"
+        - id: "ex_b_002"
+          ...
+      moderate:
+        - id: "ex_m_001"
+          ...
+    ppt_outline:
+      - slide: 1
+        title: "导入：生活中的方程组问题"
+        key_points: ["购物问题"]
+      - slide: 2
+        title: "消元法三步曲"
+        key_points: ["变形", "消元", "求解"]
+    references: ["教材第一章p5-8", "可汗学院视频：消元法"]
+
+  ideological_integration_suggestion:
+    target_node_id: "tool_elimination_method"
+    element: "用数学建模解决实际问题的价值观"
+    approach: "在导入环节，用真实的校园购物问题引入，引导学生体会数学建模在生活决策中的应用"
+    activity: "小组讨论：给出一个校园食堂预算问题，学生用方程组建模求解"
+    duration_minutes: 5
+    teacher_confirmation: "pending"     # pending/confirmed/modified_by_teacher
+
+  assessment_criteria:
+    classroom:
+      tool_level: "能独立完成标准形式方程组的消元法求解"
+      skill_level: "能根据系数特点灵活选择消去的变量"
+      concept_level: "理解消元法本质是'降维'——把二元问题转化为一元"
+    self_study:
+      checkpoints: ["完成课前预习", "能总结消元法步骤", "完成练习正确率≥80%"]
+
 created_at: "2026-06-12T10:30:00Z"
+teacher_approved: false
 ```
 
 #### 边界与异常
 
 | 异常场景 | 系统行为 |
 |---------|---------|
-| 输入章节引用不存在 | 返回 ERR-REF-001，提示"未找到对应章节，请先生成课程规划" |
-| 习题数量超出范围 | 自动修正为边界值，并提示"已自动调整数量" |
-| 质量审核发现知识点重复 | 触发 Harness 告警，标记为 WARNING-001，提供去重建议 |
-| 任一 Agent 3 次重试失败 | 降级输出已完成部分，缺失部分标注"生成失败，请手动补充" |
+| 知识网络引用不存在 | 返回 ERR-REF-001，提示"未找到对应知识网络，请先完成课程规划" |
+| 指定节点范围为空或不存在 | 提示 ERR-NODE-001，要求重新指定节点 |
+| 思政融合 Agent 输出包含不适当内容 | Harness 内容过滤拦截，提示教师审查 |
+| 教师确认后修改思政建议 | 记录修改历史，下次备课优先采用教师确认过的设计模式 |
+| 练习题库数量 > 30 | 自动拆分节点，创建子节点或分组 |
+| 任一 Agent 3 次重试失败 | 降级输出已完成部分，缺失部分标注"待人工补充" |
+| 教师未提供原始教材 | 改为通用教学包，输出内容由教师手动补充 |
+| Token 超预算 | 拆分备课流程：一次只处理一个节点，其余节点按队列执行 |
 
 ---
 
 ### 3.2.3 SCENE-003：虚拟教室
 
-**场景目标**：AI 教师 + N 个 AI 学生模拟真实课堂互动，支持小组讨论、问答、投票、角色扮演等多种课堂模式。
+**场景目标**：真实学生在系统中自主学习时，由 AI 教师 + N 个 AI 同学 + 真实学生组成虚拟课堂。AI 教师负责按知识网络节点的教学要求推进学习过程、调用已有教学资源、发起课堂互动、合理引导学生理解。AI 学生模拟真实同学行为：回答问题、提出疑问、与其他同学（包括真实学生）讨论、互相评价。
+
+**核心设计原则**：
+1. 虚拟教室是**一个节点的完整学习体验**（不是整节课的缩影），学生学完该节点后由节点推荐引擎推荐下一节点
+2. AI 教师按已确认的教案+学案推进，**不自由发挥**
+3. 教学资源直接引用 SCENE-002 备课辅助输出的资源（按节点切片）
+4. 支持不同模式：讲解模式 / 问答模式 / 讨论模式 / 练习模式
+5. **真实学生在虚拟教室中的表现会影响节点掌握标记**
 
 #### Agent 角色定义
 
 | Agent 角色 | 框架 | 数量 | 职责边界 |
 |-----------|------|------|---------|
-| AI 教师 Agent | AgentScope | 1 | 发起提问、控制课堂节奏、总结讨论、给出点评 |
-| AI 学生 Agent | AgentScope | N（可配，默认 3） | 回答问题、发起提问、参与讨论、互相评价 |
-| 课堂管理 Agent | DeepAgents | 1 | 维护课堂秩序规则、记录发言、处理异常发言 |
+| AI 教师 Agent | AgentScope | 1 | 按教案+学案推进学习，讲解要点，提问引导，控制节奏，调用资源，给予点评 |
+| AI 学生 Agent | AgentScope | N（可配，默认 3） | 模拟不同水平的学生行为：回答问题、发起质疑、与真实学生讨论、互相评价 |
+| 课堂记录 Agent | DeepAgents | 1 | 记录学习过程、节点进度、互动数据、生成节点总结 |
+
+#### 交互流程
+
+```
+学生进入虚拟教室
+  │
+  ▼
+系统识别学生当前所在节点（由学习路径决定）
+  │
+  ▼
+加载 SCENE-002 输出的教案+学案+教学资源
+  │
+  ▼
+  ┌──────────────────────────────────────┐
+  │ AI 教师 Agent                       │
+  │ 按教案步骤推进：                    │
+  │   · 导入：用情境引入                │
+  │   · 新授：讲解要点，穿插提问        │
+  │   · 练习：学生完成练习题            │
+  │   · 讨论：AI 学生+真实学生讨论      │
+  │   · 总结：AI 教师总结 + 学生记录    │
+  │ 过程中调用节点资源（PPT/题库/视频   │
+  └──────────────┬───────────────────────┘
+                 │
+         ┌───────┴──────────────────┐
+         ▼                           ▼
+  ┌────────────────────┐   ┌────────────────────┐
+  │ AI 学生 Agent      │   │ 真实学生           │
+  │ 模拟真实同学行为  │   │ 学习+答题+互动     │
+  │ 回答问题+讨论+评价│   │ （与 AI 学生互动）│
+  └──────────┬─────────┘   └──────────┬─────────┘
+             │                        │
+             └────────────┬──────────┘
+                          ▼
+  ┌──────────────────────────────────────┐
+  │ 课堂记录 Agent                      │
+  │ 记录：                              │
+  │   · 节点学习进度                    │
+  │   · 学生答题情况                    │
+  │   · 互动数据（AI 与真实）           │
+  │   · 易错点/困难点                  │
+  │   · 节点总结                       │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  节点内错题闭环触发（当学生答错时，见 SCENE-004）
+                 │
+                 ▼
+           标记节点掌握状态：
+             · 掌握：节点推荐引擎（SCENE-005）
+             · 未掌握：进入错题闭环 → 再评估
+                 │
+                 ▼
+         持久化节点学习记录
+```
 
 #### 输入规格
 
 ```yaml
-scene: "虚拟教室"
-class_topic: "一元二次方程的配方法"              # 必填
-class_mode: "小组讨论"                           # 必填，[讲授/问答/小组讨论/角色扮演]
-student_count: 3                                 # 必填，1~10
-student_personas:                                # 选填，定义每个 AI 学生的性格
-  - id: "student_1"
-    name: "小博"
-    personality: "积极活跃"
-    strategy: "抢答型"
-  - id: "student_2"
-    name: "小静"
-    personality: "沉稳内敛"
-    strategy: "深思熟虑型"
-  - id: "student_3"
-    name: "小思"
-    personality: "活跃但易错"
-    strategy: "引导纠错型"
-interaction_interval: 10                          # 选填，Agent 间最小交互间隔（秒），默认 10
-max_turns: 20                                     # 选填，最大交互轮次，默认 20
-teacher_can_interrupt: true                       # 选填，教师是否可随时打断，默认 true
+session_type: "virtual_classroom"
+student_id: "s_001"                              # 必填，真实学生ID
+knowledge_network_ref: "kn_001"                  # 必填，引用课程规划知识网络
+current_node_id: "tool_elimination_method"       # 必填，学生当前所处节点
+ai_student_count: 3                              # 选填，默认3
+ai_student_profiles:                             # 选填，AI学生的角色设定
+  - id: "ai_s_01"
+    name: "好奇的小明"
+    profile: "积极提问，喜欢追问'为什么'"
+  - id: "ai_s_02"
+    name: "细心的小红"
+    profile: "回答认真，善于发现他人错误"
+  - id: "ai_s_03"
+    name: "严谨的小华"
+    profile: "思维严谨，偏爱方法性讨论"
+teaching_resource_ref: "res_tool_elimination_method"  # 必填，引用SCENE-002输出的资源
+session_mode: "mixed"                               # lecture/qa/discussion/exercise/mixed
+max_duration_minutes: 30                           # 选填，一次虚拟教室最长时长
 ```
 
-#### 课堂消息格式（MessageHub）
-
-```json
-{
-  "msg_id": "msg_003_001",
-  "sender": "ai_teacher_001",
-  "sender_type": "teacher",
-  "content": {
-    "text": "同学们，我们来看这道题：解方程 x²-6x+5=0，有没有人想尝试一下？",
-    "type": "question",
-    "metadata": {
-      "difficulty": "中等",
-      "target_students": ["student_1", "student_2", "student_3"],
-      "expected_answer": "配方法"
-    }
-  },
-  "timestamp": "2026-06-12T10:05:00Z",
-  "turn": 1
-}
-```
-
-```json
-{
-  "msg_id": "msg_003_002",
-  "sender": "student_1",
-  "sender_type": "student",
-  "content": {
-    "text": "老师，我来试试！先把常数移到右边：x²-6x=-5，然后两边加9：(x-3)²=4，所以x-3=±2，x=5或x=1！",
-    "type": "answer",
-    "metadata": {
-      "strategy_used": "抢答型",
-      "is_correct": true
-    }
-  },
-  "timestamp": "2026-06-12T10:05:12Z",
-  "turn": 2
-}
-```
-
-#### 输出规格（课堂总结）
+#### 输出规格
 
 ```yaml
-class_summary:
-  topic: "一元二次方程的配方法"
-  class_mode: "小组讨论"
-  total_turns: 18
-  actual_duration_minutes: 25
-  student_participation:
-    student_1:
-     发言次数: 7
-      正确率: "85.7%"
-      特点: "积极主动，抢答"
-    student_2:
-      发言次数: 5
-      正确率: "100%"
-      特点: "沉稳，思路清晰"
-    student_3:
-      发言次数: 6
-      正确率: "50%"
-      特点: "积极参与但易出错，教师及时纠错"
-  key_insights:
-    - "学生对配方法第一步（移项）掌握较好"
-    - "学生在配方时容易漏掉加上的常数项"
-    - "建议下次加强'完全平方公式'的复习"
-  teacher_interventions:
-    - turn: 5
-      action: "打断"
-      reason: "student_3 发言偏离主题"
-    - turn: 12
-      action: "补充"
-      content: "在学生回答后补充了'检验'步骤"
-recording_url: "/recordings/class_003_20260612.m4a"
+session_summary:
+  session_id: "vc_20260612_001"
+  target_node_id: "tool_elimination_method"
+  student_id: "s_001"
+  node_completed: true                              # true/false
+  mastery_level_marked: "tool"                      # 该节点在哪个层级掌握（与节点layer匹配）
+  learning_durations_minutes: 25
+  student_responses:
+    - id: "resp_001"
+      turn_number: 3
+      type: "answer"
+      content: "我觉得应该消去 y，因为两式中 y 的系数可以通过乘以相同的数使其一致"
+      correct: true
+      ai_teacher_feedback: "很好的观察！你发现了消元法的关键——系数对齐"
+  ai_student_discussions:
+    - id: "disc_001"
+      topic: "消去 x 还是消去 y 更好"
+      participants: ["ai_s_01", "ai_s_02", "s_001"]
+      summary: "学生们讨论了两种消元策略，发现根据系数特点选择可以简化计算"
+  incorrect_answers:
+    - question_id: "ex_b_003"
+      wrong_answer_attempted: "x=5, y=-1"
+      error_type: "计算错误（符号）"
+      correction_hint: "再检查第二个方程中 x 的系数变形"
+  resources_used:
+    - type: "exercise"
+      ref: "ex_b_001"
+    - type: "ppt_outline"
+      ref: "slide_2"
+  error_node_triggered: true                    # 是否触发节点内错题闭环
+  notes_for_next_node: ["该学生掌握较快，下一节点建议跳过基础讲解，直接进入练习"]
+  mastery_confirmed: true                       # 综合表现确认是否掌握该节点
+  next_step_reason: "已完成消元法所有练习，正确率90%，符合掌握标准"
 ```
 
 #### 边界与异常
 
 | 异常场景 | 系统行为 |
 |---------|---------|
-| AI 学生连续 3 轮无响应 | 课堂管理 Agent 发起追问："@student_X，你有什么想法吗？" |
+| 指定节点不存在对应的教学资源 | 提示 ERR-RES-001："节点未完成备课，请先完成 SCENE-002" |
+| 虚拟教室运行超过 max_duration | AI 教师发起"时间到了，我们先总结本次学到的要点"，自动推进到结束流程 |
+| AI 学生连续 3 轮无响应 | 课堂记录 Agent 标记为"静默学生"，AI 教师不再对其提问 |
 | AI 学生发言涉及不当内容 | Harness 内容过滤拦截，消息被静默丢弃，触发告警并记录 |
-| 教师打断并修改课堂话题 | 所有 Agent 上下文重置，重新加载新话题提示词模板 |
-| 达到 max_turns | 自动触发课堂收尾流程：AI 教师做总结，下课 |
-| 任一 Agent 崩溃 | 尝试重启；3 次重启失败则暂停课堂，通知教师 |
+| 真实学生连续 10 分钟无交互 | AI 教师主动发起引导性问题："你对这一步有什么想法吗？" |
+| 真实学生打断并改变话题 | AI 教师按节点目标约束："这是一个很好的问题，但我们当前的目标是掌握消元法。等完成后我们再讨论你提出的问题" |
+| 学生答题后触发节点内错题闭环 | 自动启动 SCENE-004 流程 |
+| 节点完成后但掌握标记未通过 | 不推进到下一节点，进入错题闭环 → 重新评估 |
+| 系统崩溃 | 恢复最后保存的会话状态，从断点继续 |
 
 ---
 
-### 3.2.4 SCENE-004：学生练习
+### 3.2.4 SCENE-004：节点内错题闭环
 
-**场景目标**：为学生出题 → AI 引导学生思考 → 同伴讨论 → 给出个性化反馈与下一阶段建议。
+**场景目标**：当学生在虚拟教室（SCENE-003）或作业批改（SCENE-006）中答错时，系统自动启动微观学习闭环：诊断错误原因 → 补充讲解 → 同类新题 → 再评估。直到掌握或达到上限。
+
+**核心设计原则**：
+1. **诊断优先**：不是简单地"再出一题"，而是先分析错误的本质（概念误解？计算错误？审题偏差？前置知识缺失？）
+2. **针对性补充**：根据诊断结果给出不同的补充讲解/资源
+3. **递进练习**：补充后的新题与原题**同类型但不同难度/角度**，避免"记答案"
+4. **渐进退出**：掌握后标记，未掌握但达到重试上限时标记"需要教师关注"，而非无限循环
 
 #### Agent 角色定义
 
-| Agent 角色 | 框架 | 职责边界 |
-|-----------|------|---------|
-| 出题 Agent | DeepAgents | 根据章节知识点，从题库或动态生成梯度练习题 |
-| 答疑 Agent | AgentScope | 接收学生答案，引导式追问，不直接给答案 |
-| 同伴 Agent | AgentScope | 模拟同伴给出不同解法或错误示范，供对比学习 |
-| 评估 Agent | DeepAgents | 分析学生答题路径，给出个性化反馈与学习建议 |
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 错题诊断 Agent | DeepAgents | 1 | 分析学生错误答案，判断错误类型与可能的原因 |
+| 补充讲解 Agent | DeepAgents | 1 | 基于诊断结果生成针对性的讲解/资源推荐 |
+| 同类题生成 Agent | DeepAgents | 1 | 生成同类型但不同难度/角度的新题目 |
+| 评估 Agent | DeepAgents | 1 | 评估学生在新题上的表现，判断是否达到掌握 |
+
+#### 交互流程
+
+```
+触发条件：学生在 SCENE-003 / SCENE-006 中答错某题
+  │
+  ▼
+  ┌──────────────────────────────────────┐
+  │ 错题诊断 Agent                       │
+  │ 分析：                               │
+  │   · 题目考点（节点中哪个子知识点）   │
+  │   · 错误类型：概念误解/计算错误/    │
+  │              审题偏差/前置知识缺失   │
+  │   · 严重程度：小错误/理解偏差/根本   │
+  │                                      │
+  │ 输出：错误诊断报告                   │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 补充讲解 Agent                      │
+  │ 基于诊断推荐：                      │
+  │   · 如果是"概念误解"：返回概念节点  │
+  │     重新讲解                         │
+  │   · 如果是"计算错误"：给出计算步骤  │
+  │     详解 + 提醒                      │
+  │   · 如果是"前置知识缺失"：推荐返回  │
+  │     前序节点复习                    │
+  │   · 如果是"审题偏差"：训练审题方法  │
+  │                                      │
+  │ 输出：针对性讲解内容                │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 同类题生成 Agent                     │
+  │ 生成新题：                           │
+  │   · 与原题同类型（同考点）            │
+  │   · 难度微调（通常比原题简单一些）   │
+  │   · 不同角度（数字/情境变化）       │
+  │   · 不直接复用原题（避免记答案）    │
+  │                                      │
+  │ 输出：新题目（含参考答案）            │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+           学生完成新题
+                 │
+                 ▼
+  ┌──────────────────────────────────────┐
+  │ 评估 Agent                          │
+  │ 对比学生答案与标准答案              │
+  │ 评估：                               │
+  │   · 新题答对 → 标记"已掌握该错误点"│
+  │     继续原流程（返回 SCENE-003）    │
+  │   · 新题仍答错 → 记录为"需再次诊断"│
+  │     ，重新进入闭环（最多 MAX_ATTEMPTS次） │
+  │                                      │
+  │ 掌握条件：连续2次答对同类题 OR       │
+  │          同类题累计正确率 ≥ 80%      │
+  └──────────────┬───────────────────────┘
+                 │
+                 ▼
+         ┌────────┴────────┐
+         ▼                 ▼
+   标记：已掌握       达到重试上限
+      │                 │
+      ▼                 ▼
+ 返回原节点流程      标记"需要教师关注"
+                   记录该节点为"难点节点"
+                   学情分析中特别标记
+```
 
 #### 输入规格
 
 ```yaml
-chapter_ref: "ch_001"
-student_level: "中等"                           # 必填，[差/中/良/优]，影响题目难度
-exercise_count: 3                                 # 必填，每轮练习题数量
-difficulty_gap: true                              # 必填，是否包含梯度递进题目
-include_hint: true                                # 选填，是否在学生卡住时提供hint
-max_hint_per_question: 2                          # 选填，每题最多 hint 次数
-peer_discussion_rounds: 2                        # 选填，同伴讨论轮次，默认 2
+error_info:
+  original_question_id: "ex_b_003"        # 必填，原题ID
+  original_question_content: "解方程组：2x+3y=13, 3x+2y=12"
+  student_wrong_answer: "x=5, y=-1"
+  error_type_guess: "computational"        # concept/computational/reading/prerequisite
+  error_severity: "medium"                  # low/medium/high
+  context_session_id: "vc_20260612_001"    # 触发闭环的会话ID
+  node_id: "tool_elimination_method"       # 所属节点
+  max_attempts: 3                           # 选填，默认3
+  student_id: "s_001"
 ```
 
 #### 输出规格
 
 ```yaml
-practice_session:
-  student_id: "stu_001"
-  chapter_ref: "ch_001"
-  exercises:
-    - exercise_id: "prac_001"
-      content: "用配方法解方程：x²+2x-8=0"
-      hints:
-        - id: 1
-          content: "提示1：先把这个方程化成 (x+m)²=n 的形式"
-          triggered: false
-        - id: 2
-          content: "提示2：两边同时加上1（因为(b/2)²=1）"
-          triggered: false
-      student_answer: "x²+2x=8 → (x+1)²=9 → x+1=±3 → x=2或x=-4"
+error_loop_record:
+  loop_id: "err_loop_001"
+  node_id: "tool_elimination_method"
+  original_error:
+    question_id: "ex_b_003"
+    diagnostic:
+      error_type: "computational"
+      specific_cause: "第二个方程在变形为 x=... 时符号处理错误"
+      severity: "medium"
+      prerequisite_knowledge_gap: null
+    supplementary_explanation:
+      approach: "step_by_step_review"
+      content: "让我们重新检查第二个方程的变形过程。原方程3x+2y=12，如果我们想先消去 x，两式中 x 的系数分别是2和3，最小公倍数是6..."
+      resources_recommended: ["教材第一章例2", "可汗学院视频片段2:30-4:10"]
+  attempts:
+    - attempt_number: 1
+      new_question_id: "ex_b_003_v2"
+      new_question_content: "解方程组：3x+2y=13, 2x+3y=12（注意：与原题系数对称，练习消元过程）"
+      student_answer: "x=3, y=2"
       is_correct: true
-      peer_example:
-        content: "同桌的解法：x²+2x-8=0 → Δ=4+32=36 → x=(-2±6)/2 → x=2或x=-4"
-        note: "同桌用了求根公式，两种方法结果一致，验证了答案"
-      feedback:
-        score: 100
-        strengths: ["移项正确，配方正确"]
-        improvements: []
-        next_step: "可以尝试更复杂的系数，如 x²+4x+2=0"
-    - exercise_id: "prac_002"
-      content: "已知方程 x²+bx+4=0 有两个相等实根，求 b 的值"
-      hints: [...]
-      student_answer: "b=±4"
-      is_correct: false
-      peer_example: [...]
-      feedback:
-        score: 60
-        strengths: ["理解判别式Δ=0"]
-        improvements: ["漏算了 b²-16=0 → b²=16 → b=±4", "实际答案是 b=±4，此题学生碰巧正确但过程不严谨"]
-        next_step: "建议复习'完全平方式'的构成条件"
-  session_summary:
-    total_score: 180
-    average_score: 80.0
-    weak_topics: ["判别式的计算严谨性"]
-    strong_topics: ["配方法基本步骤"]
-    recommended_next_chapter: "ch_002：一元二次方程的公式法"
+      teacher_feedback: "这次做得很好！你成功纠正了符号处理的问题"
+      mastery_after_this_attempt: false
+  final_status: "mastered"                   # mastered / needs_teacher_attention / not_mastered
+  total_attempts: 1
+  recommendation: "学生已掌握该题型。可返回原节点继续。建议在后续作业中再出现1-2道同类型题以巩固"
+  triggered_at: "2026-06-12T10:45:00Z"
+  completed_at: "2026-06-12T10:50:00Z"
 ```
 
 #### 边界与异常
 
 | 异常场景 | 系统行为 |
 |---------|---------|
-| 学生连续 2 题答错 | 答疑 Agent 主动触发 hint，而不是继续出下一题 |
-| 学生 2 次 hint 后仍答错 | 评估 Agent 标记为"需要人工关注"，通知教师 |
-| 学生输入为空或乱码 | 记录为无效作答，跳过此题，记录 ERR-PRAC-INVALID |
-| 评估 Agent 发现系统性错误 | 自动追加"知识点复习建议"到 session_summary |
+| 错题诊断 Agent 无法归类错误 | 默认标记为"其他"，跳过自动闭环，直接标记"需要教师关注" |
+| 同类题生成 Agent 无法生成合格新题（3次重试失败） | 降级：直接从题库中随机抽取同类题，不生成新题 |
+| 学生连续 MAX_ATTEMPTS 次仍答错 | 标记"需要教师关注"。记录该节点为"难点节点"。在学情分析中特别标记 |
+| 诊断为"前置知识缺失" | 自动推荐学生返回前序节点复习。不进入当前节点的闭环 |
+| 学生在同一节点累计触发闭环 ≥ 3 次 | 升级为"节点重难点标记"，提醒教师在课堂上重点讲解 |
+| Token 超预算 | 缩短讲解内容，减少同类题生成数量 |
+| 学生主动退出闭环（"我想跳过这题"） | 记录为"学生主动放弃"，但不标记为"掌握"。在下次进入该节点时自动重新触发练习 |
+| 补充讲解内容可能超出学生理解范围 | Harness 校验：确保讲解深度不超过目标层级要求（如工具层学生不应该被讲概念层内容） |
+### 3.2.5 SCENE-005：节点推荐引擎
 
----
+**场景目标**：当学生在某节点被标记为"已掌握"后，系统基于知识网络的边关系、学生历史表现、学生目标层次，自动计算并推荐 2~4 个候选下一节点，供学生选择。
 
-### 3.2.5 SCENE-005：作业批改
-
-**场景目标**：教师上传一个或多个学生的作业文件（PDF/TXT/图片），系统批量批阅并给出每份作业的评分、逐题点评、总体评语与个性化改进建议。
+**核心设计原则**：
+1. **网络驱动**：推荐的核心依据是知识网络中存在的边关系
+2. **表现加权**：学生在相关节点的历史表现数据会影响推荐权重
+3. **层次匹配**：推荐会考虑学生的目标层级（tool/skill/concept）
+4. **学生选择**：系统推荐多个候选，最终由学生决定走哪条路径
+5. **不做全局路径规划**：每次只推荐"下一步"，路径是动态涌现的
 
 #### Agent 角色定义
 
-| Agent 角色 | 框架 | 职责边界 |
-|-----------|------|---------|
-| 作业解析 Agent | DeepAgents | 读取作业文件，提取每道题的答案文本（支持 PDF OCR） |
-| 批改 Agent | DeepAgents | 对照标准答案逐题评分，给出得分理由 |
-| 评语生成 Agent | DeepAgents | 综合本次作业表现，生成鼓励性评语与改进建议 |
-| 汇总报告 Agent | DeepAgents | 汇总全班作业数据，生成班级统计报告 |
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 路径分析 Agent | DeepAgents | 1 | 分析知识网络中的可选路径，计算每条路径的"推荐分数" |
+| 候选筛选 Agent | DeepAgents | 1 | 基于推荐分数、层次匹配、学生表现筛选 2~4 个最佳候选 |
+| 推荐解释 Agent | DeepAgents | 1 | 为每个候选生成"为什么推荐"的解释文字 |
+
+#### 交互流程
+
+```
+触发：学生在某节点标记为"已掌握"
+  │
+  ▼
+  路径分析 Agent → 候选筛选 Agent → 推荐解释 Agent
+                 │
+                 ▼
+           学生选择某节点
+                 │
+                 ▼
+          启动 SCENE-003 虚拟教室
+```
 
 #### 输入规格
 
 ```yaml
-homework_batch:
-  homework_id: "hw_001"
-  course_id: "math_g9_001"
-  chapter_ref: "ch_001"
-  standard_answers:                              # 必填，教师提供的参考答案
-    - question_id: "q1"
-      answer: "x²+4x+1=0（已是标准形式，a=1,b=4,c=1）"
-      max_score: 10
-    - question_id: "q2"
-      answer: "配方法：移项→配方→求解"
-      max_score: 15
-  submissions:
-    - student_id: "stu_001"
-      file_url: "/uploads/stu_001_hw001.pdf"
-      file_type: "pdf"
-    - student_id: "stu_002"
-      file_url: "/uploads/stu_002_hw001.pdf"
-      file_type: "pdf"
-  include_class_summary: true                    # 选填，是否生成班级汇总报告
+recommendation_trigger:
+  current_node_id: "tool_elimination_method"
+  student_id: "s_001"
+  mastery_level_at_current_node: "tool"
+  knowledge_network_ref: "kn_001"
+  student_target_level: "skill"
+  candidate_count: 3
+  teacher_approval_required: false
 ```
 
-#### 输出规格
+#### 输出规格（摘要版）
 
 ```yaml
-grading_results:
-  homework_id: "hw_001"
-  total_submissions: 2
-  processed_at: "2026-06-12T11:00:00Z"
-  individual_reports:
-    - student_id: "stu_001"
-      total_score: 23
-      max_score: 25
-      percentage: 92
-      grade: "优秀"
-      question_scores:
-        - question_id: "q1"
-          score: 10
-          feedback: "答案完全正确，标准形式识别准确"
-        - question_id: "q2"
-          score: 13
-          feedback: "配方法步骤基本正确，但在'配方'步骤漏写了常数项，建议加强完全平方公式练习"
-      overall_comment: "本次作业完成得很棒！配方法掌握较好，注意细节会更加完美。继续加油！"
-      improvement_tips:
-        - "建议复习：(a±b)² = a²±2ab+b² 的展开"
-        - "可以尝试多做几步综合计算题"
-    - student_id: "stu_002"
-      total_score: 15
-      max_score: 25
-      percentage: 60
-      grade: "及格"
-      question_scores: [...]
-      overall_comment: "第一题做得不错，但第二题需要重新学习配方法的完整流程。建议观看课程回放中'配方法三步曲'部分。"
-      improvement_tips: [...]
-  class_summary:
-    total_students: 2
-    average_score: 76.5
-    score_distribution:
-      优秀: 1
-      良好: 0
-      及格: 1
-      不及格: 0
-    common_mistakes:
-      - topic: "配方法第二步"
-        frequency: "50%"
-        description: "在配方时忘记加上(b/2)²，或加错数值"
-    recommended_review_topics:
-      - "完全平方公式的构成条件"
-      - "配方法中'移项'的规范化操作"
+recommendation_result:
+  candidates:
+    - rank: 1
+      recommended_node_id: "skill_model_solve_system"
+      recommendation_score: 0.92
+      reason: "你在工具层节点表现优秀，下一步自然是学习如何将这种方法应用于真实情境"
+    - rank: 2
+      recommended_node_id: "tool_more_complex_systems"
+      recommendation_score: 0.81
+      reason: "如果你想先在工具层巩固，这是一个好选择，强化计算基础"
+    - rank: 3
+      recommended_node_id: "concept_linear_equations"
+      recommendation_score: 0.65
+      reason: "如果你对'为什么可以这样解'这个问题本身感兴趣，可以直接挑战概念层"
+  student_final_choice: null
+  auto_advanced: false
 ```
 
 #### 边界与异常
 
 | 异常场景 | 系统行为 |
 |---------|---------|
-| 文件格式不支持（除 PDF/TXT/图片） | 返回 ERR-FILE-001，提示支持的文件格式列表 |
-| PDF OCR 识别置信度 < 60% | 标记为"识别困难"，提示教师手动核对答案 |
-| 学生漏答某题 | 自动给 0 分，并在反馈中注明"未作答" |
-| 全班平均分异常（< 40% 或 > 95%） | 触发 Harness 告警，提示教师"成绩分布异常，请确认参考答案是否正确" |
-| 批改 Agent 3 次重试后仍无法评分 | 标记为"待人工批改"，不影响其他作业处理 |
+| 从当前节点出发无可达后继节点 | 提示"你已完成该主题的所有学习！推荐进入下一主题" |
+| 所有候选都被学生拒绝 | 列出知识网络中所有其他可选节点，让学生自由选择 |
+| 推荐分数全部 < 0.5 | 扩大搜索范围重新计算；若仍无则提示教师手动建议 |
+| 学生历史数据不足（<3 个节点） | 默认按网络结构推荐，表现权重降为 0，标注"待积累数据后自动调整" |
+
+---
+
+### 3.2.6 SCENE-006：作业批改
+
+**场景目标**：学生完成随堂测试/课后作业/结课考核后，系统自动评分、生成逐题点评、给出单个学生的学习评估与后续建议，同时生成全班学情分析。
+
+**核心设计原则**：
+1. **不同场景不同评阅策略**（随堂/课后/结课考核）
+2. **错题触发 SCENE-004 节点内错题闭环**
+3. **数据自动写入 SCENE-007 学情分析**
+
+#### Agent 角色定义
+
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 答题解析 Agent | DeepAgents | 1 | 读取并结构化学生答案（支持文本/图片/手写） |
+| 逐题批改 Agent | DeepAgents | N | 对照标准答案与评分标准逐题评定 |
+| 学习建议 Agent | DeepAgents | 1 | 基于错题分布生成个性化建议 |
+| 班级汇总 Agent | DeepAgents | 1 | 汇总全班数据，生成学情分析摘要 |
+
+#### 交互流程
+
+```
+学生提交作业 → 答题解析 → 逐题批改
+                           │
+                    错题触发 SCENE-004
+                           │
+                           ▼
+               学习建议 Agent → 班级汇总 Agent
+                           │
+                           ▼
+                  持久化所有批改记录
+```
+
+#### 输入规格
+
+```yaml
+homework_submission:
+  homework_id: "hw_001"
+  homework_type: "in_class_test"
+  student_id: "s_001"
+  questions:
+    - q_id: "q_001"
+      content: "用消元法解：2x+3y=13, 3x+2y=12"
+      student_answer: "x=2, y=3"
+      max_score: 5
+  reference_answers:
+    - q_id: "q_001"
+      correct_answer: "x=2, y=3"
+      scoring_rubric: "步骤完整且正确5分；步骤有小错误4分..."
+```
+
+#### 输出规格（摘要版）
+
+```yaml
+homework_result:
+  homework_id: "hw_001"
+  student_id: "s_001"
+  total_score: 28
+  max_total_score: 30
+  score_percentage: 0.93
+  question_results:
+    - q_id: "q_001"
+      scored: 5
+      is_correct: true
+      scoring_reason: "步骤完整，答案正确"
+    - q_id: "q_002"
+      scored: 3
+      is_correct: false
+      error_type: "computational"
+      triggered_error_loop: true
+      error_loop_id: "err_loop_002"
+  node_mastery_after_homework:
+    node_id: "tool_elimination_method"
+    mastery_confirmed: true
+    accuracy: 0.93
+  recommended_follow_up:
+    type: "advance_to_next_node"
+    target_next_node: "skill_model_solve_system"
+  class_summary:
+    average_score: 22
+    common_errors: ["符号处理", "消元步骤遗漏系数"]
+```
+
+#### 边界与异常
+
+| 异常场景 | 系统行为 |
+|---------|---------|
+| 学生答案格式无法解析 | 标记为"待人工批改"，记录 ERR-HW-001 |
+| 未提供参考答案 | 降级为"仅记录学生答案，不自动评分"，等待教师提供后重批 |
+| 全班平均分异常（<40% 或 >95%） | 触发 Harness 告警，提示教师确认参考答案是否正确 |
+| 批改 Agent 3 次重试后仍无法评分 | 标记为"待人工批改"，不影响其他作业 |
+
+---
+
+### 3.2.7 SCENE-007：学情分析
+
+**场景目标**：基于学生在各节点的学习数据，生成单个学生的**学习画像**和班级的**学习热力图**与**薄弱环节分析**。
+
+**核心设计原则**：
+1. **数据驱动**：所有分析基于真实学习数据
+2. **与知识网络关联**：分析结果定位到具体节点
+3. **自动化**：学生每次完成学习活动后自动更新
+
+#### Agent 角色定义
+
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 数据聚合 Agent | DeepAgents | 1 | 从 SCENE-003/004/006 汇总所有学生数据 |
+| 学生画像 Agent | DeepAgents | 1 | 为每个学生生成学习画像 |
+| 班级分析 Agent | DeepAgents | 1 | 生成班级热力图、薄弱环节识别、班级对比 |
+| 教学调整建议 Agent | DeepAgents | 1 | 生成教师应如何调整教学的建议 |
+
+#### 输出规格（班级分析摘要）
+
+```yaml
+class_analysis_report:
+  report_id: "report_2026_06_12_class_001"
+  total_students: 30
+  knowledge_network_heatmap:
+    - node_id: "tool_elimination_method"
+      average_mastery_rate: 0.85
+      common_issues: ["符号处理"]
+    - node_id: "skill_model_solve_system"
+      average_mastery_rate: 0.62
+      common_issues: ["情境理解不足"]
+  student_tiers:
+    - tier: "advanced"
+      count: 5
+      avg_accuracy: 0.92
+      notes: "可挑战概念层"
+    - tier: "needs_support"
+      count: 7
+      avg_accuracy: 0.58
+      notes: "可能存在前置知识缺口"
+  teaching_adjustment_recommendations:
+    - id: "adj_001"
+      priority: "high"
+      target_node: "skill_model_solve_system"
+      suggestion: "安排1课时课堂建模专题练习"
+      expected_outcome: "掌握率提升至80%"
+```
+
+#### 边界与异常
+
+| 异常场景 | 系统行为 |
+|---------|---------|
+| 学生学习数据不足（<2 个节点） | 标记为"数据不足无法完整分析" |
+| 分析引擎崩溃或超时 | 返回最近一次成功报告缓存，触发告警 |
+| 数据异常矛盾 | 标记为"数据矛盾"，提示教师人工核查 |
+
+---
+
+### 3.2.8 SCENE-008：教学评估（课程/单元末）
+
+**场景目标**：使用课程规划阶段（SCENE-001）设计的评估指标，对教师的教学过程进行系统评估，生成反思报告与改进建议，服务教师专业成长。
+
+**核心设计原则**：
+1. **指标来源于课程规划**
+2. **关注过程而非只看结果**
+3. **数据来源于多个场景**（虚拟教室、作业批改、学情分析等）
+4. **强调反思与成长**（不是给教师打分排名）
+
+#### Agent 角色定义
+
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 指标解析 Agent | DeepAgents | 1 | 从 SCENE-001 输出提取评估指标与评分标准 |
+| 数据收集 Agent | DeepAgents | 1 | 从各场景汇总教学相关数据 |
+| 教学评估 Agent | DeepAgents | 1 | 对照评估指标逐项评定，生成评估报告 |
+| 反思引导 Agent | DeepAgents | 1 | 生成教师反思问题与改进建议 |
+
+#### 输出规格（摘要版）
+
+```yaml
+teaching_evaluation_report:
+  report_id: "teach_eval_001"
+  metric_evaluations:
+    - metric_id: "m_001"
+      achieved_score: 3.5
+      max_score: 5
+      target_score: 4.0
+      status: "below_target"
+      supporting_evidence:
+        - "全班60%学生掌握技能层节点（目标80%）"
+        - "建模题平均正确率58%"
+  overall_summary:
+    overall_rating: 3.8
+    strengths: ["工具层节点教学高效", "思政元素融合执行到位", "虚拟教室提升参与度"]
+    areas_for_improvement: ["技能层节点教学方法需改进", "跨层推进节奏过快"]
+  concrete_improvement_suggestions:
+    - id: "imp_001"
+      priority: "high"
+      target_node: "skill_model_solve_system"
+      suggestion: "增加2-3个完整课堂建模案例；让学生自己出题并互相评价；在虚拟教室中增加'多策略讨论'环节"
+      expected_impact: "技能层节点掌握率提升至80%+"
+  teacher_confirmed: false
+```
+
+#### 边界与异常
+
+| 异常场景 | 系统行为 |
+|---------|---------|
+| 未找到 SCENE-001 定义的评估指标 | 提示 ERR-METRIC-001，提供空模板让教师手动填写 |
+| 数据来源中某类数据缺失 | 标记"数据不足"，降低该指标权重，在最终评估中注明 |
+| Token 超预算 | 生成精简版报告（仅核心指标评分 + Top3 改进建议） |
+
+---
+
+### 3.2.9 SCENE-009：知识网络动态维护（后台 meta-scenario）
+
+**场景目标**：基于累积的学生学习数据，系统定期分析知识网络的"实际表现"，检测网络结构中的潜在问题（节点过于困难、节点过于容易、节点间衔接断层等），生成网络优化建议报告，供教师/教研人员参考。
+
+**核心设计原则**：
+1. **数据驱动优化**：基于真实学生表现
+2. **定期 + 手动双触发**：默认每月/每学期自动运行一次，也可教师手动触发
+3. **只给建议，不自动修改**：最终决策权在教师
+4. **建议要可操作**：问题描述 + 数据证据 + 修改建议 + 预期效果
+
+#### Agent 角色定义
+
+| Agent 角色 | 框架 | 数量 | 职责边界 |
+|-----------|------|------|---------|
+| 节点性能分析 Agent | DeepAgents | 1 | 分析每个节点的学生表现（掌握率/耗时/错误率） |
+| 边关系分析 Agent | DeepAgents | 1 | 分析节点间迁移难度、是否存在衔接断层 |
+| 结构优化 Agent | DeepAgents | 1 | 生成网络结构优化建议（拆分/合并/新增/删除节点） |
+| 报告生成 Agent | DeepAgents | 1 | 生成人类可读的优化建议报告 |
+
+#### 交互流程
+
+```
+触发（定时/手动） → 节点性能分析 → 边关系分析
+                       │
+                       ▼
+                 结构优化 Agent
+                       │
+                       ▼
+              报告生成 → 教师审阅采纳
+                       │
+                       ▼
+           采纳的建议 → 触发 SCENE-001 重新设计
+```
+
+#### 输出规格（摘要版）
+
+```yaml
+knowledge_network_optimization_report:
+  report_id: "net_opt_001"
+  network_ref: "kn_001"
+  total_students_included: 30
+  trigger_type: "scheduled_monthly"
+  node_performance_analysis:
+    - node_id: "tool_elimination_method"
+      design_difficulty: 2
+      actual_performance_difficulty: 2
+      mastery_rate: 0.85
+      status: "as_expected"
+    - node_id: "skill_model_solve_system"
+      design_difficulty: 3
+      actual_performance_difficulty: 4.2
+      mastery_rate: 0.60
+      status: "significantly_more_difficult_than_expected"
+  optimization_suggestions:
+    - id: "opt_001"
+      priority: "high"
+      type: "split_node"
+      target_node: "skill_model_solve_system"
+      problem_description: "设计难度3，但实际表现难度4.2，掌握率仅60%"
+      evidence_data: ["30%学生触发3次或更多错题闭环", "平均完成耗时45分钟（预期30分钟）"]
+      suggested_action: "拆分为两个子节点：①'情境中的方程识别与提取'；②'完整建模求解'。第一个节点专注于'从文字到方程'的转化"
+      expected_effect: "拆分后每个节点掌握率80%+；降低学生的断层感"
+  expected_impact_if_all_adopted:
+    expected_avg_mastery_rate_improvement: "+12% (from 78% to 90%)"
+  teacher_review_status: "pending_review"
+```
+
+#### 边界与异常
+
+| 异常场景 | 系统行为 |
+|---------|---------|
+| 学习数据不足（<30% 的节点有 ≥5 个学生数据） | 降级为"基于有限数据的初步分析"，醒目警告 |
+| Token 超预算 | 仅输出节点+边的性能数据表 + Top3 优化建议 |
+| 维护服务崩溃 | 通知运维，保留上次成功报告 |
+| 节点性能与设计预期极度矛盾（数据量充足） | 标记为"高优先级优化目标"，主动提醒教师 |
 
 ---
 
@@ -677,15 +1286,186 @@ grading_results:
 
 | 模块编号 | 模块名称 | 优先级 |
 |---------|---------|--------|
-| FR-01 | 场景识别与分析 | P0 |
+| FR-01 | 场景识别与分析（9 类场景） | P0 |
 | FR-02 | Agent 配置动态生成 | P0 |
 | FR-03 | Agent 编排与调度 | P0 |
 | FR-04 | 框架协议转换 | P0 |
-| FR-05 | 配置持久化与管理 | P1 |
-| FR-06 | 人机协同接口 | P1 |
-| FR-07 | 可观测性与审计 | P1 |
-| FR-08 | 可视化配置界面（可选） | P2 |
-| FR-09 | Harness 约束层 | P0 |
+| FR-05 | 立体分层知识网络 | P0 |
+| FR-06 | 节点推荐引擎（动态学习路径） | P0 |
+| FR-07 | 节点内错题闭环 | P1 |
+| FR-08 | 作业批改与评分 | P1 |
+| FR-09 | 学情分析（学生画像 + 班级热力图） | P1 |
+| FR-10 | 教学评估（课程/单元末） | P1 |
+| FR-11 | 知识网络动态维护（后台 meta-scenario） | P1 |
+| FR-12 | 配置持久化与管理 | P1 |
+| FR-13 | 人机协同接口 | P1 |
+| FR-14 | 可观测性与审计 | P1 |
+| FR-15 | Harness 约束层 | P0 |
+| FR-16 | 思政融合设计与审核 | P1 |
+| FR-17 | 可视化配置界面（可选） | P2 |
+
+### FR-05：立体分层知识网络
+
+**功能描述**：支持概念层/技能层/工具层三维结构，每个知识点在不同层次投影为独立节点。
+
+| 需求项 | 说明 |
+|--------|------|
+| 节点类型 | concept / skill / tool 三层标记 |
+| 节点属性 | bloom_level / difficulty / can_self_learn / estimated_periods |
+| 边关系 | 同层边（依赖关系）+ 跨层边（从工具到概念/从概念到工具） |
+| 网络构建 | 教师+Agent共创迭代，支持手动调整节点与边 |
+| 网络表示 | 统一 YAML/JSON 格式，可序列化保存 |
+| 节点掌握判定 | 每个节点有独立掌握标准（正确率/任务完成度等） |
+
+### FR-06：节点推荐引擎（动态学习路径）
+
+**功能描述**：学生在某节点标记掌握后，基于知识网络边关系+学生表现+目标层次，自动计算推荐下一节点。
+
+| 需求项 | 说明 |
+|--------|------|
+| 推荐算法 | 基于网络可达性+节点难度梯度+学生历史表现加权评分 |
+| 候选数量 | 每次推荐 2-4 个候选节点供学生选择 |
+| 推荐理由 | 每个候选节点需附结构化推荐理由 |
+| 教师审核模式 | 教师可开启审核模式，推荐结果经教师确认后生效 |
+| 目标层次匹配 | 推荐应考虑学生的整体目标层次（如对中职生优先推荐工具层节点） |
+| 难度跳跃限制 | 相邻推荐节点的难度差不超过 1（1-5 难度） |
+| 会话间记忆 | 节点推荐引擎需结合长期记忆，避免重复推荐已掌握节点 |
+
+### FR-07：节点内错题闭环
+
+**功能描述**：学生答错时，自动启动诊断→补充讲解→同类题→再评估的微观循环，直至掌握或达重试上限。
+
+| 需求项 | 说明 |
+|--------|------|
+| 错误诊断 | 自动判断错误类型：概念误解/计算错误/审题偏差/前置知识缺失 |
+| 补充讲解 | 基于诊断结果生成针对性讲解内容或资源引用 |
+| 同类题生成 | 生成同考点但不同情境/数值的新题目，避免记答案 |
+| 掌握判定 | 连续 2 次答对 或 累计正确率 ≥ 80% 时标记为"节点内已掌握" |
+| 重试上限 | 默认 3 次，可配置；达到上限标记为"需要教师关注" |
+| 错题记录 | 所有错题及其闭环过程结构化记录，用于学情分析 |
+| 跨节点前置诊断 | 诊断为"前置知识缺失"时，自动推荐返回前序节点复习 |
+
+### FR-08：作业批改与评分
+
+**功能描述**：学生完成随堂测试/课后作业/结课考核后，系统自动批改、评分、生成逐题点评。
+
+| 需求项 | 说明 |
+|--------|------|
+| 评阅类型 | 随堂测试/课后作业/结课考核三种评阅策略 |
+| 评分标准 | 教师可预设评分 rubric，Agent 据此逐题打分 |
+| 逐题点评 | 每题需附结构化点评：正确答案/学生答案对比/错误原因/改进建议 |
+| 评分一致性 | 同类题目评分一致性偏差应 ≤ 5% |
+| 节点掌握关联 | 作业表现应自动更新相关节点的掌握状态 |
+| 教师复核 | 教师可查看自动评分、调整分数、添加批注 |
+| 异常检测 | 全班平均分异常（<40% 或 >95%）自动告警 |
+
+### FR-09：学情分析
+
+**功能描述**：基于各节点学习数据，生成学生个人学习画像与班级学习热力图、薄弱环节分析。
+
+| 需求项 | 说明 |
+|--------|------|
+| 学生画像 | 每个学生：已掌握节点列表/薄弱节点列表/学习速率/活跃状态/目标层次 |
+| 班级热力图 | 在知识网络上叠加全班平均掌握率，形成可视化热力图 |
+| 学生分层 | 自动将学生分层：advanced / on_track / needs_support |
+| 薄弱节点识别 | 自动识别全班普遍困难（<60% 掌握率）的节点，高亮标记 |
+| 学习建议生成 | 针对每个薄弱节点自动生成教学建议（需增加讲解/需增加练习/需重新设计） |
+| 定期自动更新 | 默认每周自动生成最新学情报告；教师可手动触发重新分析 |
+| 与虚拟教室联动 | 学情分析结果自动影响后续节点推荐和虚拟教室设计 |
+
+### FR-10：教学评估（课程/单元末）
+
+**功能描述**：使用课程规划阶段设计的评估指标，对教师教学过程进行系统评估，生成反思报告。
+
+| 需求项 | 说明 |
+|--------|------|
+| 指标来源 | 评估指标从 SCENE-001 课程规划输出中自动提取 |
+| 数据收集 | 自动从虚拟教室/作业批改/知识网络维护等场景收集数据 |
+| 评估维度 | 指标达成度/学生表现/教学方法有效性/资源利用率 |
+| 反思引导 | 自动生成引导性问题，供教师填写反思 |
+| 改进建议 | 基于评估结果生成具体改进建议（如"某节点应拆分为2节点"） |
+| 教师确认 | 教师可修改/补充/确认评估报告 |
+| 纵向对比 | 支持与前一学期/前一单元/同类班级对比 |
+
+### FR-11：知识网络动态维护
+
+**功能描述**：后台定期运行的 meta-scenario，基于学生学习数据分析并优化知识网络结构。
+
+| 需求项 | 说明 |
+|--------|------|
+| 触发方式 | 每月定时自动运行 + 教师手动触发 |
+| 节点性能分析 | 每个节点的实际掌握率/平均学习耗时/平均错题闭环次数 |
+| 边关系分析 | 节点间迁移困难度、是否存在衔接断层 |
+| 优化建议类型 | split_node（拆分）/ merge_node（合并）/ add_transition_node（新增过渡节点）/ increase_difficulty（提升难度）/ decrease_difficulty（降低难度） |
+| 建议证据 | 每个建议必须附数据证据和预期效果 |
+| 教师决策 | 系统只生成建议，所有网络结构变更需教师确认 |
+| 版本历史 | 网络结构变更记录为版本历史，可追溯和回滚 |
+| 网络规模控制 | 优化后的节点总数应在合理范围（默认 ±20%） |
+
+### FR-12：配置持久化与管理
+
+**功能描述**：教学配置、知识网络、评估指标等可保存至本地文件系统，支持加载、列举、版本控制。
+
+| 需求项 | 说明 |
+|--------|------|
+| 保存格式 | YAML / JSON |
+| 目录结构 | 区分 knowledge_networks / teaching_packages / evaluation_metrics / feedback_entries / runtime_logs |
+| 配置生命周期 | 草稿 → 预览 → 保存 / 执行 |
+| 模板导出 | 支持将已保存配置导出为可复用模板 |
+| 版本控制 | 每个配置带版本号，支持 diff 查看变更 |
+| 多课程隔离 | 不同课程的配置完全隔离 |
+
+### FR-13：人机协同接口
+
+**功能描述**：在关键节点引入人类教师的确认、反馈与干预。
+
+| 需求项 | 说明 |
+|--------|------|
+| 人工审批 | Agent 发起的关键决策需教师确认（如知识网络结构变更） |
+| 反馈收集 | 支持对 Agent 输出进行评分与批注 |
+| 实时打断 | 运行过程中教师可中断指定 Agent |
+| 动态调整 | 运行时可调整 Agent 数量、角色、策略 |
+| 审核模式开关 | 教师可在节点粒度上开启/关闭审核模式 |
+| 结构化反馈 | 教师反馈必须结构化记录，用于 Harness 持续优化 |
+
+### FR-14：可观测性与审计
+
+**功能描述**：Agent 执行过程可追踪、可回放、可审计。
+
+| 需求项 | 说明 |
+|--------|------|
+| 日志记录 | 记录每个 Agent 的输入、输出、决策依据 |
+| 运行状态 | 可视化展示当前任务进度与 Agent 状态 |
+| 审计回放 | 支持按时间轴回放完整执行过程 |
+| Harness 统计 | 记录每次校验通过率、失败原因分布 |
+| Token 统计 | 记录每次会话 Token 消耗量，与预算对比 |
+| 节点掌握历史 | 每个学生在各节点的学习过程完整可追溯 |
+
+### FR-15：Harness 约束层
+
+**功能描述**：引入 Harness（驾驭层）理念——通过预设提示词模板、任务待办清单、结构化输出校验、工具权限边界与反馈闭环，将 Agent 的行为与输出严格约束在需求范围内。
+
+| 需求项 | 说明 |
+|--------|------|
+| 提示词模板 | 每个 Agent 绑定 6 区块模板（角色/任务边界/输出格式/禁止话题/待办清单/动态注入），锁定区块不可被推理覆盖 |
+| 任务待办驱动 | 每个 Agent 执行必须绑定 write_todos，完成度 <100% 时自动提醒 |
+| 结构化校验管道 | 三阶段：Schema 校验→内容边界过滤→任务完整性检查；3 次失败触发人工干预 |
+| 工具白名单 | 每个 Agent 绑定工具白名单+参数约束；白名单外工具调用 100% 拦截 |
+| 沙箱执行 | Shell/代码类工具必须在隔离沙箱执行（Modal/Deno/Daytona） |
+| 反馈闭环 | 教师反馈结构化记录，触发模板版本化，持续优化 |
+
+### FR-16：思政融合设计与审核
+
+**功能描述**：在备课辅助阶段，系统自动为每个节点生成思政元素融合建议，教师确认后落到教案与学案。
+
+| 需求项 | 说明 |
+|--------|------|
+| 建议生成 | Agent 为每个节点生成结构化建议：目标节点/思政元素/融入方式/预计时长/活动设计 |
+| 教师确认 | 教师可 approve/reject/revise 每条建议；系统记录每次决策 |
+| 内容审核 | 思政内容须经额外 Harness 检查：不允许包含敏感/不适当内容 |
+| 融入痕迹 | 教案/学案中标注"本节包含思政设计"，保留可追溯性 |
+| 模板沉淀 | 优秀思政设计可沉淀为模板，后续同类课程复用 |
+| 严禁自动输出 | Agent 只能"建议"，最终内容必须经教师手动确认后写入教案 |
 
 ### 4.2 FR-01：场景识别与分析
 
@@ -695,7 +1475,7 @@ grading_results:
 |--------|------|
 | 输入 | 课程名称、课程简介、教学材料（可选）、用户选择模式 |
 | 输出 | 场景类型、推荐 Agent 组合、初始配置模板 |
-| 识别准确率 | 对预置 5 类场景的识别准确率目标 ≥ 85% |
+| 识别准确率 | 对预置 9 类场景的识别准确率目标 ≥ 85% |
 | 人工修正 | 系统推荐结果应支持教师修正覆盖 |
 
 ### 4.3 FR-02：Agent 配置动态生成
@@ -734,39 +1514,15 @@ grading_results:
 | 格式映射 | DeepAgents 的 AgentState / write_todos / VFS file 与 AgentScope 的 Message / msghub 互相映射 |
 | 可扩展性 | 未来新增第三方 Agent 框架时，协议层应支持插拔式扩展 |
 
-### 4.6 FR-05：配置持久化与管理
+### 4.6 注意：完整内容已在上方 FR-12 小节详细定义，此处不再重复
 
-**功能描述**：配置可保存至本地文件系统，支持加载、列举、导出模板。
+### 4.7 注意：完整内容已在上方 FR-13 小节详细定义，此处不再重复
 
-| 需求项 | 说明 |
-|--------|------|
-| 保存格式 | YAML / JSON |
-| 目录结构 | 区分 templates（场景模板）、presets（预设）、user_saved（用户保存）、runtime（运行时） |
-| 配置生命周期 | 草稿 → 预览 → 保存 / 执行 |
-| 模板导出 | 支持将已保存配置导出为可复用模板 |
+### 4.8 注意：完整内容已在上方 FR-14 小节详细定义，此处不再重复
 
-### 4.7 FR-06：人机协同接口
+### 4.9 FR-17：可视化配置界面（可选）
 
-**功能描述**：在关键节点引入人类教师的确认、反馈与干预。
-
-| 需求项 | 说明 |
-|--------|------|
-| 人工审批 | Agent 发起的关键决策需教师确认 |
-| 反馈收集 | 支持对 Agent 输出进行评分与批注 |
-| 实时打断 | 运行过程中教师可中断指定 Agent |
-| 动态调整 | 运行时可调整 Agent 数量、角色、策略 |
-
-### 4.8 FR-07：可观测性与审计
-
-**功能描述**：Agent 执行过程可追踪、可回放、可审计。
-
-| 需求项 | 说明 |
-|--------|------|
-| 日志记录 | 记录每个 Agent 的输入、输出、决策依据 |
-| 运行状态 | 可视化展示当前任务进度与 Agent 状态 |
-| 审计回放 | 支持按时间轴回放完整执行过程 |
-
-### 4.9 FR-08：可视化配置界面（可选）
+**说明：FR-16 思政融合设计已在上方详细定义，本节专注可视化配置**
 
 **功能描述**：通过 Web 界面（React/Vue）提供图形化配置能力，降低技术门槛。
 
@@ -777,7 +1533,7 @@ grading_results:
 | 实时预览 | 配置修改后可即时预览效果 |
 | REST API 暴露 | 后端通过 FastAPI 暴露接口供前端调用 |
 
-### 4.10 FR-09：Harness 约束层
+### 4.10 FR-15：Harness 约束层
 
 **功能描述**：引入 Harness（驾驭层）理念——通过预设提示词模板、任务待办清单、结构化输出校验、工具权限边界与反馈闭环，将 Agent 的行为与输出严格约束在需求范围内，防止自由发散或偏离教学目标。
 
@@ -1494,14 +2250,19 @@ retrieval_config:
 
 | 验收项 | 通过标准 |
 |--------|---------|
-| FR-01 场景识别 | 对 5 类典型教学输入，能够产出对应场景识别结果 |
-| FR-02 配置生成 | 可生成结构完整、字段一致的 YAML 配置文件 |
-| FR-03 Agent 编排 | 可按配置启动多个 Agent 并完成一次完整协同任务 |
-| FR-04 协议转换 | DeepAgents 与 AgentScope Agent 可互相通信协作 |
-| FR-05 配置管理 | 可 save / load / list / export 配置，文件格式正确 |
-| FR-06 人机协同 | 运行中至少一次完成人工审批或打断流程 |
-| FR-07 可观测 | 执行完成后可查看完整日志与时间轴回放 |
-| FR-09 Harness 约束 | 任一 Agent 输出必须通过 Harness 校验管道；未绑定约束的 Agent 不得启动 |
+| FR-01 场景识别 | 对 9 类典型教学输入，能正确识别对应场景 |
+| FR-05 知识网络 | 能生成包含至少 3 个概念节点 + 3 个技能节点 + 3 个工具节点的完整知识网络 |
+| FR-06 节点推荐 | 学生完成一节点后，系统在 10 秒内推荐 2-4 个下一节点候选，每个候选附推荐理由 |
+| FR-07 错题闭环 | 10 个典型错题能触发完整诊断→讲解→新题→评估闭环；3 次失败后触发"教师关注"标记 |
+| FR-08 作业批改 | 对 5 份不同类型作业样本能完成自动评分，逐题点评，评分一致性 ≥ 90% |
+| FR-09 学情分析 | 能生成单个学生的知识网络图 + 30 人班级的学习热力图，自动识别 2-5 个薄弱节点 |
+| FR-10 教学评估 | 使用预设评估指标，生成包含 5 条以上具体改进建议的评估报告 |
+| FR-11 网络动态维护 | 模拟 30 份学生数据输入后，能生成至少 3 条网络优化建议，每条附数据证据 |
+| FR-12 配置管理 | 可 save / load / list / export 配置，对同一知识网络保留至少 2 个版本，可查看版本 diff |
+| FR-13 人机协同 | 运行中至少一次完成人工审批或打断流程 |
+| FR-14 可观测 | 执行完成后可查看完整日志与时间轴回放 |
+| FR-15 Harness 约束 | 任一 Agent 输出必须通过 Harness 校验管道；未绑定约束的 Agent 不得启动 |
+| FR-16 思政融合 | Agent 能为 3 个不同教学节点生成结构化思政建议，每条建议须经教师确认后才写入教案 |
 
 ### 7.2 非功能验收
 
@@ -1540,18 +2301,38 @@ retrieval_config:
 4. 连续 3 次失败后，应转入人工干预流程并告警
 5. 审计日志中应记录完整的失败原因与重试过程
 
+**用例 4：节点推荐与动态路径**
+
+1. 学生在"工具_消元法"节点完成学习并标记掌握
+2. 节点推荐引擎在 10 秒内推荐 2-4 个候选下一节点
+3. 学生选择"技能_建模"节点
+4. 系统自动启动该节点的虚拟教室
+5. 在学习过程中学生答错 2 题，触发节点内错题闭环
+6. 闭环结束后学生重新评估并标记为掌握该节点
+7. 系统记录完整学习路径（从工具层进入技能层）
+
+**用例 5：知识网络动态维护**
+
+1. 系统包含一个已构建的知识网络（8 个节点）
+2. 模拟 30 名学生在该网络中完成学习（各节点掌握率、耗时、错题数据模拟）
+3. 教师手动触发知识网络动态维护分析
+4. 系统生成优化建议报告（至少 3 条建议，每条含数据证据）
+5. 教师采纳一条"新增过渡节点"建议
+6. 网络版本从 v1.0 变为 v1.1，节点数从 8 变为 9
+7. 可查看变更 diff，回滚至 v1.0 可用
+
 ---
 
 ## 8. 版本路线图（建议）
 
 | 版本 | 计划内容 | 交付物 |
 |-----|---------|--------|
-| v0.1 | 核心骨架：Harness 约束层（提示词模板 + 输出 schema + 权限白名单） + 单框架编排（DeepAgents） | 可运行的 CLI Demo，Harness 校验流水线首次可用 |
-| v0.2 | 引入 AgentScope，完成协议转换层与跨框架通信；Harness 支持多 Agent 同时约束 | 跨框架协作 Demo |
-| v0.3 | 人机协同接口 + 配置持久化管理 + Harness 模板版本化 | 教师可参与的完整流程 |
-| v0.4 | 可观测性与审计（日志、回放、指标）+ Harness 校验统计面板 | 监控面板 |
-| v0.5 | 可视化配置界面（Web） | 前后端全链路产品 |
-| v1.0 | 性能优化 + 稳定发布 + 模板库沉淀 | 生产可用版本 |
+| v0.1 | 核心骨架：Harness 约束层 + 立体分层知识网络数据结构 + 单框架（DeepAgents）基础编排 | 可运行 CLI Demo，能构建知识网络，Harness 校验流水线可用 |
+| v0.2 | 节点推荐引擎原型 + 节点内错题闭环 + 虚拟教室基础版（仅工具层节点） | 学生可在单节点内完成学习→练习→掌握流程 |
+| v0.3 | 引入 AgentScope，完成协议转换层与跨框架通信；扩展至技能层节点；思政融合设计 | 跨框架协作 Demo，能在三层节点间切换 |
+| v0.4 | 作业批改（随堂测试）+ 学情分析基础版 + Harness 模板版本化 | 自动评阅+学生画像+班级热力图 |
+| v0.5 | 教学评估（课程/单元末）+ 知识网络动态维护 + 配置版本控制 | 完整教学闭环：从规划到评估 |
+| v1.0 | 可视化配置界面（Web）+ 性能优化 + 稳定发布 + 模板库沉淀 | 生产可用版本 |
 
 ---
 
@@ -1565,6 +2346,13 @@ retrieval_config:
 | R-04 内容安全 | Agent 可能输出不适合教育场景的内容 | 接入内容审核服务并配置拦截规则 |
 | R-05 教师学习成本 | 非技术背景教师使用门槛高 | 提供可视化界面 + 场景模板库 + 使用视频 |
 | R-06 Harness 过度约束 | 严格校验可能影响 Agent 的灵活度与创造性 | 分层策略：关键路径强制校验，可选路径宽松校验，支持按场景调整 |
+| R-07 知识网络构建复杂度 | 立体三层网络的节点/边数量庞大，人工构建成本高 | 提供默认网络模板；支持教师从模板开始迭代；Agent 自动生成提案减少空白工作量 |
+| R-08 学习路径动态性与可控性的平衡 | 路径由学生选择，但教师需要有整体把控能力 | 默认全自动推荐；提供教师审核模式；允许教师在节点粒度锁定路径 |
+| R-09 节点推荐算法偏差 | 算法可能偏向某类型路径（如总是推荐工具层），导致学习体验单一化 | 引入"路径多样化"系数；定期评估推荐分布，自动调整算法权重 |
+| R-10 学情分析数据不足 | 新课程/新节点缺乏足够学生数据支撑分析 | 采用启发式规则+小样本统计混合方法；数据不足时明确标注"数据不足，仅供参考" |
+| R-11 教学评估的主观性 | 评估指标虽有量化设计，但教学过程评估难免主观 | 设计多维度指标体系；结合学生数据+教师自评+同行评审；指标权重可配置 |
+| R-12 节点内错题闭环的"无效循环" | 学生可能反复触发同类错题，陷入无进展循环 | 设置最大重试次数（默认3）；标记为"需要教师关注"后转入教师人工辅导；记录闭环过程避免重复同样错误 |
+| R-13 思政融合的合规性 | Agent 生成的思政建议可能存在内容或表达不当 | 双保险：Agent 仅生成"建议"，教师必须手动确认；额外 Harness 内容审核；记录全部决策历史 |
 
 ---
 
