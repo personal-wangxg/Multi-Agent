@@ -33,4 +33,16 @@
 | **课程末** | SCENE-008 | **教学评估** | 课程/单元结束后教师发起 | 教师教学过程反思 |
 | **后台持续** | SCENE-009 | **知识网络动态维护** | 定期自动+教师手动 | 后台 meta-scenario：基于学习数据的网络优化建议 |
 
-每个场景均提供详细的 Agent 角色定义、交互流程、I/O 规格及边界异常处理。
+每个场景均提供详细的 Agent 角色定义、交互流程、I/O 规格及边界异常处理。各场景详细规格见独立文件：
+
+| 场景编号 | 场景名称 | 详细规格文件 |
+|---------|---------|------------|
+| SCENE-001 | 课程规划 | [scene_001_course_planning.md](03_scenes/scene_001_course_planning.md) |
+| SCENE-002 | 备课辅助 | [scene_002_lesson_prep.md](03_scenes/scene_002_lesson_prep.md) |
+| SCENE-003 | 虚拟教室 | [scene_003_virtual_classroom.md](03_scenes/scene_003_virtual_classroom.md) |
+| SCENE-004 | 节点内错题闭环 | [scene_004_error_loop.md](03_scenes/scene_004_error_loop.md) |
+| SCENE-005 | 节点推荐引擎 | [scene_005_node_recommendation.md](03_scenes/scene_005_node_recommendation.md) |
+| SCENE-006 | 作业批改 | [scene_006_homework_grading.md](03_scenes/scene_006_homework_grading.md) |
+| SCENE-007 | 学情分析 | [scene_007_learning_analytics.md](03_scenes/scene_007_learning_analytics.md) |
+| SCENE-008 | 教学评估 | [scene_008_teaching_evaluation.md](03_scenes/scene_008_teaching_evaluation.md) |
+| SCENE-009 | 知识网络动态维护 | [scene_009_network_maintenance.md](03_scenes/scene_009_network_maintenance.md) |

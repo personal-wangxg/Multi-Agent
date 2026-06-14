@@ -102,8 +102,8 @@
 | 层次 | 存储位置 | 内容范围 | 生命周期 | 最大容量 |
 |------|---------|---------|---------|---------|
 | **短期记忆 STM** | Agent 实例内存 / 消息队列 | 当前会话内所有 Agent 消息、当前 write_todos 状态、最近 LLM 调用输入/输出 | 会话内，退出后清除 | MAX_STM_MESSAGES = 50 条消息，或 ≤ 8192 Token（取两者较小值） |
-| **工作记忆 WM** | VFS 文件系统 `/sessions/{id}/working/` + `/wiki/` + `/data/` | 各 Agent 生成的中间产物 + Knowledge Wiki 页面 + Decision Index 决策索引表 + 完整阶段产物文件 | 会话结束后 Wiki/决策索引永久保留，中间产物保留默认 7 天 | WM 文件 ≤ 4096 Token；Decision Index ≤ 300 Token；Wiki 页面 ≤ 2000 Token |
-| **长期记忆 LTM** | 向量数据库（如 ChromaDB / PGVector） | 历史大纲、教案模板、教师反馈、成功配置快照、最佳 Agent 组合 | 永久保留（教师可手动删除） | 无硬性限制，按向量维度 × 数量估算 |
+| **工作记忆 WM** | VFS 文件系统 `/sessions/{id}/working/` + `/wiki/` + `/data/` | 各 Agent 生成的中间产物 + Knowledge Wiki 页面 + Decision Index 决策索引表 + 完整阶段产物文件 | 会话结束后 Wiki/决策索引永久保留，中间产物保留默认 7 天 | WM 文件 ≤ 4096 Token；Decision Index ≤ 300 Token；Wiki 页面 ≤ 2000 Token；决策索引为结构化 YAML/JSON，不使用向量索引 |
+| **长期记忆 LTM** | 向量数据库（如 ChromaDB / PGVector） | 历史大纲、教案模板、教师反馈、成功配置快照、最佳 Agent 组合 | 永久保留（教师可手动删除） | 无硬性限制，按向量维度 × 数量估算；LTM 与决策索引相互独立，决策索引不作为向量片段存储 |
 
 #### 5.6.3 Token 计算与上下文窗口控制
 

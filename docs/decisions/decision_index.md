@@ -20,7 +20,7 @@
 
 | DP ID | 决策摘要 | 关键词 | 确认状态 | 详情页面 |
 |-------|---------|--------|---------|---------|
-| DP-ARCH-01 | 采纳方案D：知识编译 + 决策索引 + Knowledge Wiki + Git，不需要向量数据库 | knowledge-compilation, decision-index | ✅ 已确认 | [dp_arch_01.md](dp_arch_01.md) |
+| DP-ARCH-01 | 采纳方案D：知识编译 + 决策索引 + Knowledge Wiki + Git。决策索引本身存储为 YAML/JSON 文本文件（由 Git 版本管理），不需要向量数据库。LTM 长期记忆内容（历史大纲、教案模板、反馈记录）独立于决策索引，可选择使用向量数据库进行相似度检索 | knowledge-compilation, decision-index | ✅ 已确认 | [dp_arch_01.md](dp_arch_01.md) |
 | DP-ARCH-02 | 9 个典型业务场景确认：SCENE-001~SCENE-009 | scenes, 9-scenes | ✅ 已确认 | [dp_arch_02.md](dp_arch_02.md) |
 | DP-ARCH-03 | 课程规划采用三阶段设计：教学目标 → 课程结构 → 知识网络 | course-planning, three-stage | ✅ 已确认 | [dp_arch_03.md](dp_arch_03.md) |
 | DP-ARCH-04 | 知识网络节点采用三层结构：概念层 / 技能层 / 工具层 | knowledge-network, three-layer | ✅ 已确认 | [dp_arch_04.md](dp_arch_04.md) |
