@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduAgents - 约束基础设施层可视化验证</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #667eea;
+        }
+        
+        .tab:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .tab.active:hover {
+            background: white;
+        }
+        
+        .section {
+            display: none;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .log-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        
+        .log-item .time {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .log-item.info .level {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+        
+        .log-item.warn .level {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .log-item.error .level {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .log-item .message {
+            margin-left: 10px;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+        
+        .progress-fill.normal {
+            background: #28a745;
+        }
+        
+        .progress-fill.warning {
+            background: #ffc107;
+        }
+        
+        .progress-fill.critical {
+            background: #dc3545;
+        }
+        
+        .validation-steps {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .validation-step {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            background: #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .validation-step.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .validation-step.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .validation-step.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ EduAgents 约束基础设施层</h1>
+            <p>可视化验证平台 - 实时演示 Harness 约束层、记忆体系与可观测性功能</p>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('harness')">Harness 约束层</button>
+            <button class="tab" onclick="showSection('memory')">三层记忆体系</button>
+            <button class="tab" onclick="showSection('observability')">可观测性</button>
+            <button class="tab" onclick="showSection('demo')">完整流程演示</button>
+        </div>
+        
+        <div id="harness" class="section active">
+            <div class="card">
+                <h3>📋 提示词模板引擎</h3>
+                <div class="form-group">
+                    <label>场景类型</label>
+                    <select id="templateScene">
+                        <option value="scene001">SCENE-001 课程规划</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>动态变量（JSON格式）</label>
+                    <textarea id="templateVariables">{"course_name": "初三数学", "course_desc": "一元二次方程", "total_periods": 12}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="injectTemplate()">注入变量</button>
+                <button class="btn btn-secondary" onclick="listTemplates()">列出模板</button>
+                <div id="templateResult" class="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3>✅ Schema 校验管道</h3>
+                <div class="validation-steps">
+                    <div id="step1" class="validation-step">步骤1<br/>Schema校验</div>
+                    <div id="step2" class="validation-step">步骤2<br/>内容过滤</div>
+                    <div id="step3" class="validation-step">步骤3<br/>完整性检查</div>
+                </div>
+                <div class="form-group">
+                    <label>待校验输出（JSON格式）</label>
+                    <textarea id="validationOutput">{"course_name": "初三数学", "total_periods": 12, "chapters": [{"chapter_name": "一元二次方程的概念", "periods": 3, "objectives": ["理解一元二次方程的定义", "掌握一般形式"]}]}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="runValidation()">运行完整校验</button>
+                <div id="validationResult" class="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3>🔧 工具白名单管理器</h3>
+                <div class="form-group">
+                    <label>Agent ID</label>
+                    <input type="text" id="whitelistAgentId" value="agent_scene001_planner_001">
+                </div>
+                <div class="form-group">
+                    <label>工具名称</label>
+                    <input type="text" id="whitelistToolName" value="read_file">
+                </div>
+                <div class="form-group">
+                    <label>工具参数（JSON格式）</label>
+                    <textarea id="whitelistParams">{"path": "/sessions/sess_001/outline.md"}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="checkPermission()">检查权限</button>
+                <button class="btn btn-secondary" onclick="createWhitelist()">创建白名单</button>
+                <div id="whitelistResult" class="result"></div>
+            </div>
+        </div>
+        
+        <div id="memory" class="section">
+            <div class="card">
+                <h3>💭 短期记忆（STM）</h3>
+                <div class="form-group">
+                    <label>会话ID</label>
+                    <input type="text" id="stmSessionId" value="sess_001">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="stmRole">
+                        <option value="user">user</option>
+                        <option value="assistant">assistant</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>消息内容</label>
+                    <textarea id="stmContent">帮我规划一门初三数学课程，关于一元二次方程的内容。</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="addStmMessage()">添加消息</button>
+                <button class="btn btn-secondary" onclick="getStm()">查看会话状态</button>
+                <div id="stmResult" class="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3>📁 工作记忆（WM）</h3>
+                <div class="form-group">
+                    <label>会话ID</label>
+                    <input type="text" id="wmSessionId" value="sess_001">
+                </div>
+                <div class="form-group">
+                    <label>文件路径</label>
+                    <input type="text" id="wmFilePath" value="working/outline_draft.md">
+                </div>
+                <div class="form-group">
+                    <label>文件内容</label>
+                    <textarea id="wmContent"># 初三数学课程大纲
+
+## 第一章：一元二次方程的概念
+- 课时：3
+- 教学目标：理解定义，掌握一般形式
+
+## 第二章：解法探究
+- 课时：4
+- 教学目标：掌握配方法、公式法</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="wmWriteFile()">写入文件</button>
+                <button class="btn btn-secondary" onclick="wmReadFile()">读取文件</button>
+                <div id="wmResult" class="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3>📚 长期记忆（LTM）</h3>
+                <div class="form-group">
+                    <label>记忆内容</label>
+                    <textarea id="ltmContent">课程规划模板：
+- 总课时：12
+- 教学方法：讲授法 + 探究法
+- 评估方式：课堂小测 + 书面作业</textarea>
+                </div>
+                <div class="form-group">
+                    <label>领域</label>
+                    <input type="text" id="ltmDomain" value="mathematics">
+                </div>
+                <div class="form-group">
+                    <label>评分（0-1）</label>
+                    <input type="number" id="ltmRating" value="0.85" step="0.01" min="0" max="1">
+                </div>
+                <button class="btn btn-primary" onclick="ltmWriteMemory()">保存记忆</button>
+                <button class="btn btn-secondary" onclick="ltmSearch()">搜索记忆</button>
+                <div id="ltmResult" class="result"></div>
+            </div>
+        </div>
+        
+        <div id="observability" class="section">
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="number" id="metricTotalLogs">0</div>
+                    <div class="label">总日志数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="metricInfoLogs">0</div>
+                    <div class="label">INFO日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="metricWarnLogs">0</div>
+                    <div class="label">WARN日志</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="metricErrorLogs">0</div>
+                    <div class="label">ERROR日志</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📊 Token 预算管理</h3>
+                <div class="form-group">
+                    <label>会话ID</label>
+                    <input type="text" id="budgetSessionId" value="sess_001">
+                </div>
+                <div class="form-group">
+                    <label>总预算（Token）</label>
+                    <input type="number" id="budgetTotal" value="100000">
+                </div>
+                <div class="form-group">
+                    <label>消耗Token数量</label>
+                    <input type="number" id="budgetConsume" value="3000">
+                </div>
+                <div class="form-group">
+                    <label>Agent ID</label>
+                    <input type="text" id="budgetAgentId" value="agent_scene001_planner_001">
+                </div>
+                <div class="form-group">
+                    <label>消耗原因</label>
+                    <input type="text" id="budgetReason" value="生成课程大纲">
+                </div>
+                <button class="btn btn-primary" onclick="createBudget()">创建预算</button>
+                <button class="btn btn-secondary" onclick="consumeBudget()">消耗Token</button>
+                <div id="budgetResult" class="result"></div>
+                <div id="budgetProgress" style="display: none;">
+                    <div>预算使用进度</div>
+                    <div class="progress-bar">
+                        <div id="budgetFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div id="budgetStatus"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📝 审计日志</h3>
+                <button class="btn btn-primary" onclick="refreshLogs()">刷新日志</button>
+                <div id="logsContainer" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+        
+        <div id="demo" class="section">
+            <div class="card">
+                <h3>🎬 完整流程演示</h3>
+                <p style="color: #666; margin-bottom: 20px;">点击下方按钮，演示一个完整的 Agent 执行流程，包括：模板加载 → 变量注入 → 输出校验 → 记忆存储 → 日志记录</p>
+                <button class="btn btn-primary" style="font-size: 18px; padding: 16px 48px;" onclick="runDemo()">🚀 开始演示</button>
+                <div id="demoResult" class="result" style="min-height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        async function injectTemplate() {
+            const scene = document.getElementById('templateScene').value;
+            const variables = JSON.parse(document.getElementById('templateVariables').value);
+            
+            const response = await fetch(`${API_BASE}/api/harness/templates/${scene}/inject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variables })
+            });
+            const data = await response.json();
+            document.getElementById('templateResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('templateResult').className = 'result info';
+        }
+        
+        async function listTemplates() {
+            const response = await fetch(`${API_BASE}/api/harness/templates/list`);
+            const data = await response.json();
+            document.getElementById('templateResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('templateResult').className = 'result info';
+        }
+        
+        async function runValidation() {
+            const output = JSON.parse(document.getElementById('validationOutput').value);
+            const harnessConfig = {
+                schema_ref: 'schema_scene001_outline',
+                prohibited_topics: ['广告', '政治', '色情'],
+                todo_template: [
+                    { id: 1, label: '分析课程目标', required: true },
+                    { id: 2, label: '拆解章节结构', required: true }
+                ],
+                max_retries: 3
+            };
+            
+            document.getElementById('step1').className = 'validation-step active';
+            document.getElementById('step2').className = 'validation-step';
+            document.getElementById('step3').className = 'validation-step';
+            
+            const response = await fetch(`${API_BASE}/api/harness/validation/validate/pipeline`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ output, harness_config: harnessConfig })
+            });
+            const data = await response.json();
+            
+            document.getElementById('step1').className = 'validation-step ' + (data.results[0]?.success ? 'success' : 'error');
+            if (data.results[1]) {
+                document.getElementById('step2').className = 'validation-step ' + (data.results[1].success ? 'success' : 'error');
+            }
+            if (data.results[2]) {
+                document.getElementById('step3').className = 'validation-step ' + (data.results[2].success ? 'success' : 'error');
+            }
+            
+            document.getElementById('validationResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('validationResult').className = 'result ' + (data.overall_success ? 'success' : 'error');
+        }
+        
+        async function checkPermission() {
+            const agentId = document.getElementById('whitelistAgentId').value;
+            const toolName = document.getElementById('whitelistToolName').value;
+            const params = JSON.parse(document.getElementById('whitelistParams').value);
+            
+            const response = await fetch(`${API_BASE}/api/harness/whitelist/${agentId}/check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tool_name: toolName, params })
+            });
+            const data = await response.json();
+            document.getElementById('whitelistResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('whitelistResult').className = 'result ' + (data.allowed ? 'success' : 'error');
+        }
+        
+        async function createWhitelist() {
+            const agentId = document.getElementById('whitelistAgentId').value;
+            const whitelistData = {
+                agent_id: agentId,
+                scene_type: 'SCENE-001',
+                framework: 'DeepAgents',
+                tool_whitelist: {
+                    allowed_tools: [
+                        { name: 'read_file', params: { path: { type: 'string', pattern: '^/sessions/.*\\.md$' } } },
+                        { name: 'write_file', params: { path: { type: 'string' }, content: { type: 'string' } } }
+                    ],
+                    denied_tools: [
+                        { name: 'exec_shell', reason: '不允许执行系统命令' },
+                        { name: 'send_external_request', reason: '不允许访问外部API' }
+                    ]
+                }
+            };
+            
+            const response = await fetch(`${API_BASE}/api/harness/whitelist/${agentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(whitelistData)
+            });
+            const data = await response.json();
+            document.getElementById('whitelistResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('whitelistResult').className = 'result success';
+        }
+        
+        async function addStmMessage() {
+            const sessionId = document.getElementById('stmSessionId').value;
+            const role = document.getElementById('stmRole').value;
+            const content = document.getElementById('stmContent').value;
+            
+            const response = await fetch(`${API_BASE}/api/memory/stm/${sessionId}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, content })
+            });
+            const data = await response.json();
+            document.getElementById('stmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('stmResult').className = 'result info';
+        }
+        
+        async function getStm() {
+            const sessionId = document.getElementById('stmSessionId').value;
+            const response = await fetch(`${API_BASE}/api/memory/stm/${sessionId}`);
+            const data = await response.json();
+            document.getElementById('stmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('stmResult').className = 'result info';
+        }
+        
+        async function wmWriteFile() {
+            const sessionId = document.getElementById('wmSessionId').value;
+            const path = document.getElementById('wmFilePath').value;
+            const content = document.getElementById('wmContent').value;
+            
+            const response = await fetch(`${API_BASE}/api/memory/wm/${sessionId}/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, content })
+            });
+            const data = await response.json();
+            document.getElementById('wmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('wmResult').className = 'result ' + (data.success ? 'success' : 'error');
+        }
+        
+        async function wmReadFile() {
+            const sessionId = document.getElementById('wmSessionId').value;
+            const path = document.getElementById('wmFilePath').value;
+            
+            const response = await fetch(`${API_BASE}/api/memory/wm/${sessionId}/files/${path}`);
+            const data = await response.json();
+            document.getElementById('wmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('wmResult').className = 'result ' + (data.success ? 'success' : 'error');
+        }
+        
+        async function ltmWriteMemory() {
+            const content = document.getElementById('ltmContent').value;
+            const domain = document.getElementById('ltmDomain').value;
+            const rating = parseFloat(document.getElementById('ltmRating').value);
+            
+            const response = await fetch(`${API_BASE}/api/memory/ltm/memories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, domain, rating, type: 'template' })
+            });
+            const data = await response.json();
+            document.getElementById('ltmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('ltmResult').className = 'result success';
+        }
+        
+        async function ltmSearch() {
+            const response = await fetch(`${API_BASE}/api/memory/ltm/search?query=课程规划`);
+            const data = await response.json();
+            document.getElementById('ltmResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('ltmResult').className = 'result info';
+        }
+        
+        async function refreshMetrics() {
+            const response = await fetch(`${API_BASE}/api/observability/metrics`);
+            const data = await response.json();
+            document.getElementById('metricTotalLogs').textContent = data.total_logs;
+            document.getElementById('metricInfoLogs').textContent = data.info_logs;
+            document.getElementById('metricWarnLogs').textContent = data.warn_logs;
+            document.getElementById('metricErrorLogs').textContent = data.error_logs;
+        }
+        
+        async function refreshLogs() {
+            const response = await fetch(`${API_BASE}/api/observability/logs`);
+            const data = await response.json();
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = data.logs.map(log => `
+                <div class="log-item ${log.level.toLowerCase()}">
+                    <span class="time">${log.timestamp}</span>
+                    <span class="level">[${log.level}]</span>
+                    <span class="message">${log.message}</span>
+                </div>
+            `).join('');
+        }
+        
+        async function createBudget() {
+            const sessionId = document.getElementById('budgetSessionId').value;
+            const totalBudget = parseInt(document.getElementById('budgetTotal').value);
+            
+            const response = await fetch(`${API_BASE}/api/observability/token-budget/${sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ total_budget: totalBudget })
+            });
+            const data = await response.json();
+            document.getElementById('budgetResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('budgetResult').className = 'result success';
+        }
+        
+        async function consumeBudget() {
+            const sessionId = document.getElementById('budgetSessionId').value;
+            const tokens = parseInt(document.getElementById('budgetConsume').value);
+            const agentId = document.getElementById('budgetAgentId').value;
+            const reason = document.getElementById('budgetReason').value;
+            
+            const response = await fetch(`${API_BASE}/api/observability/token-budget/${sessionId}/consume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokens, agent_id: agentId, reason })
+            });
+            const data = await response.json();
+            document.getElementById('budgetResult').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            document.getElementById('budgetResult').className = 'result ' + (data.success ? 'success' : 'error');
+            
+            if (data.success) {
+                document.getElementById('budgetProgress').style.display = 'block';
+                const budget = await (await fetch(`${API_BASE}/api/observability/token-budget/${sessionId}`)).json();
+                const usagePercent = (budget.used_tokens / budget.total_budget) * 100;
+                document.getElementById('budgetFill').style.width = usagePercent + '%';
+                document.getElementById('budgetFill').className = 'progress-fill ' + data.status;
+                document.getElementById('budgetStatus').textContent = `状态: ${data.status} | 已使用: ${budget.used_tokens} / ${budget.total_budget} Token`;
+            }
+        }
+        
+        async function runDemo() {
+            const resultDiv = document.getElementById('demoResult');
+            resultDiv.innerHTML = '🚀 开始演示流程...\n\n';
+            
+            resultDiv.innerHTML += '📋 步骤1：加载并注入提示词模板...\n';
+            const templateResponse = await fetch(`${API_BASE}/api/harness/templates/scene001/inject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variables: { course_name: '初三数学', course_desc: '一元二次方程', total_periods: 12 } })
+            });
+            const templateData = await templateResponse.json();
+            resultDiv.innerHTML += `   ✓ 模板注入成功: ${templateData.template_id}\n\n`;
+            
+            resultDiv.innerHTML += '✅ 步骤2：运行 Schema 校验管道...\n';
+            const validationResponse = await fetch(`${API_BASE}/api/harness/validation/validate/pipeline`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    output: {
+                        course_name: '初三数学',
+                        total_periods: 12,
+                        chapters: [{ chapter_name: '一元二次方程的概念', periods: 3, objectives: ['理解定义'] }]
+                    },
+                    harness_config: {
+                        schema_ref: 'schema_scene001_outline',
+                        prohibited_topics: ['广告', '政治'],
+                        todo_template: [{ id: 1, label: '分析课程目标', required: true }]
+                    }
+                })
+            });
+            const validationData = await validationResponse.json();
+            resultDiv.innerHTML += `   ${validationData.overall_success ? '✓' : '✗'} 校验结果: ${validationData.overall_success ? '通过' : '失败'}\n\n`;
+            
+            resultDiv.innerHTML += '💾 步骤3：保存到工作记忆...\n';
+            const wmResponse = await fetch(`${API_BASE}/api/memory/wm/demo_session/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: 'demo_outline.md', content: '# 初三数学课程大纲\n\n## 第一章：一元二次方程' })
+            });
+            const wmData = await wmResponse.json();
+            resultDiv.innerHTML += `   ✓ 写入文件: ${wmData.path}\n\n`;
+            
+            resultDiv.innerHTML += '📚 步骤4：保存到长期记忆...\n';
+            const ltmResponse = await fetch(`${API_BASE}/api/memory/ltm/memories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: '课程规划模板：初三数学，12课时', domain: 'mathematics', rating: 0.9, type: 'template' })
+            });
+            const ltmData = await ltmResponse.json();
+            resultDiv.innerHTML += `   ✓ 记忆保存成功: ${ltmData.memory_id}\n\n`;
+            
+            resultDiv.innerHTML += '📝 步骤5：记录审计日志...\n';
+            const logResponse = await fetch(`${API_BASE}/api/observability/logs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: 'INFO', source: 'demo', category: 'execution', message: '完整演示流程完成', details: { step: 'demo_complete' } })
+            });
+            const logData = await logResponse.json();
+            resultDiv.innerHTML += `   ✓ 日志记录成功: ${logData.log_id}\n\n`;
+            
+            resultDiv.innerHTML += '🎉 演示流程完成！\n\n';
+            resultDiv.innerHTML += '所有组件协同工作正常，约束基础设施层运行良好。';
+            resultDiv.className = 'result success';
+            
+            await refreshMetrics();
+            await refreshLogs();
+        }
+        
+        setInterval(refreshMetrics, 5000);
+        refreshMetrics();
+    </script>
+</body>
+</html>
