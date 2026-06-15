@@ -28,7 +28,7 @@ def validate_schema(output, schema):
         return {
             'success': False,
             'errors': [{
-                'field': e.path.popleft() if e.path else 'unknown',
+                'field': list(e.path)[0] if e.path else 'unknown',
                 'error_type': 'schema_violation',
                 'message': e.message,
                 'expected': str(e.schema) if e.schema else None,

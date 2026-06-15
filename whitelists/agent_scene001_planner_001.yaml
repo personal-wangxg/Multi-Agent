@@ -1,0 +1,21 @@
+agent_id: agent_scene001_planner_001
+framework: DeepAgents
+scene_type: SCENE-001
+tool_whitelist:
+  allowed_tools:
+  - name: read_file
+    params:
+      path:
+        pattern: ^/sessions/.*\.md$
+        type: string
+  - name: write_file
+    params:
+      content:
+        type: string
+      path:
+        type: string
+  denied_tools:
+  - name: exec_shell
+    reason: 不允许执行系统命令
+  - name: send_external_request
+    reason: 不允许访问外部API
