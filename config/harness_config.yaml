@@ -1,0 +1,22 @@
+harness:
+  max_retries: 3
+  default_template_version: "v1.0"
+  max_output_tokens: 4096
+  
+schema:
+  strict_mode: true
+  validation_timeout: 30
+  
+whitelist:
+  default_max_calls: 50
+  sandbox_enabled: true
+  
+memory:
+  stm_max_tokens: 8192
+  ltm_injection_limit: 3
+  decision_index_max_tokens: 300
+  
+observability:
+  log_level: "INFO"
+  token_budget_warning: 0.8
+  token_budget_critical: 0.95
