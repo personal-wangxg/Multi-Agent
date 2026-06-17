@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人工智能工程实践 - 课程介绍</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 50%, #00d2ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .course-features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+
+        .feature-tag {
+            background: rgba(0, 210, 255, 0.15);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-size: 14px;
+            color: #00d2ff;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 30px;
+            background: linear-gradient(180deg, #00d2ff 0%, #3a7bd5 100%);
+            border-radius: 2px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .text-content {
+            line-height: 1.8;
+        }
+
+        .text-content h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #00d2ff;
+        }
+
+        .text-content p {
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .text-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .text-content li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            opacity: 0.9;
+        }
+
+        .text-content li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #00d2ff;
+            font-weight: bold;
+        }
+
+        .image-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 210, 255, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .image-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 210, 255, 0.3);
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .highlight-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .highlight-card:hover {
+            background: rgba(0, 210, 255, 0.1);
+            border-color: rgba(0, 210, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .highlight-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #00d2ff;
+        }
+
+        .highlight-card p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .course-positioning {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 60px;
+        }
+
+        .course-positioning h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #00d2ff;
+        }
+
+        .course-positioning p {
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 1.4rem;
+            }
+
+            .image-container img {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>人工智能工程实践</h1>
+            <p>衔接 AI 算法基础与工业级开发能力，培养符合产业需求的 AI 工程化人才</p>
+        </header>
+
+        <div class="course-features">
+            <span class="feature-tag">大三核心专业课</span>
+            <span class="feature-tag">AI辅助开发全流程</span>
+            <span class="feature-tag">软件工程方法论</span>
+            <span class="feature-tag">AI开发范式融合</span>
+        </div>
+
+        <div class="course-positioning">
+            <h2>📌 课程定位</h2>
+            <p>人工智能专业大三核心专业课，衔接 AI 算法基础与工业级开发能力，聚焦AI辅助开发全流程，将传统软件工程方法论与新一代 AI 开发范式深度融合，培养符合产业需求的 AI 工程化人才。</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span>🧠 理论基石</span>
+            </div>
+            <div class="content-grid">
+                <div class="text-content">
+                    <h3>夯实软件工程基础</h3>
+                    <p>深入理解现代软件工程核心思想，掌握AI项目生命周期管理，建立代码质量与工程规范意识。</p>
+                    <ul>
+                        <li>现代软件工程核心思想</li>
+                        <li>AI项目生命周期管理</li>
+                        <li>代码质量与工程规范</li>
+                        <li>敏捷开发与迭代管理</li>
+                    </ul>
+                </div>
+                <div class="image-container">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Modern%20software%20engineering%20architecture%20with%20AI%20elements%2C%20showing%20code%20repositories%2C%20version%20control%2C%20CI%2FCD%20pipelines%2C%20clean%20modern%20UI%20design%2C%20dark%20blue%20theme%2C%20technology%20visualization&image_size=landscape_16_9" alt="理论基石">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span>🚀 前沿范式</span>
+            </div>
+            <div class="content-grid">
+                <div class="image-container">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=AI%20powered%20development%20workflow%2C%20Vibe%20Coding%20immersive%20experience%2C%20AI%20assistant%20coding%2C%20real-time%20collaboration%2C%20modern%20IDE%20interface%2C%20holographic%20elements%2C%20futuristic%20tech%20style%2C%20purple%20blue%20gradient&image_size=landscape_16_9" alt="前沿范式">
+                </div>
+                <div class="text-content">
+                    <h3>掌握新一代开发模式</h3>
+                    <p>探索Vibe Coding沉浸式开发体验，学习Harness开发流程，实践AI驱动的DevOps实践，紧跟行业前沿技术趋势。</p>
+                    <ul>
+                        <li>Vibe Coding 沉浸式开发</li>
+                        <li>Harness 开发流程</li>
+                        <li>AI驱动的 DevOps 实践</li>
+                        <li>智能代码审查与优化</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span>🛠️ 实战演练</span>
+            </div>
+            <div class="content-grid">
+                <div class="text-content">
+                    <h3>完整项目实战能力</h3>
+                    <p>从需求分析到部署上线，全程融入AI辅助工具链，完整复现工业界AI开发流程，积累真实项目经验。</p>
+                    <ul>
+                        <li>需求分析与方案设计</li>
+                        <li>AI辅助编码与调试</li>
+                        <li>测试与质量保障</li>
+                        <li>部署上线与运维监控</li>
+                    </ul>
+                </div>
+                <div class="image-container">
+                    <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Complete%20AI%20project%20development%20lifecycle%2C%20from%20requirements%20analysis%20to%20deployment%2C%20showing%20development%20pipeline%2C%20cloud%20infrastructure%2C%20deployment%20charts%2C%20dashboard%20visualization%2C%20professional%20tech%20illustration%2C%20green%20blue%20color%20scheme&image_size=landscape_16_9" alt="实战演练">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span>🌟 课程特色</span>
+            </div>
+            <div class="highlights">
+                <div class="highlight-card">
+                    <div class="icon">📚</div>
+                    <h4>理论与前沿并重</h4>
+                    <p>既夯实软件工程基础，又深度解析最新AI开发模式，兼顾理论深度与技术前沿。</p>
+                </div>
+                <div class="highlight-card">
+                    <div class="icon">💻</div>
+                    <h4>全流程实战导向</h4>
+                    <p>以真实项目为载体，完整复现工业界AI开发流程，注重实践能力培养。</p>
+                </div>
+                <div class="highlight-card">
+                    <div class="icon">⚡</div>
+                    <h4>工具链深度应用</h4>
+                    <p>熟练掌握主流AI辅助开发工具，提升开发效率与代码质量。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span>🎯 学习收获</span>
+            </div>
+            <div class="highlights">
+                <div class="highlight-card">
+                    <div class="icon">🚀</div>
+                    <h4>完整开发流程</h4>
+                    <p>系统掌握AI项目从0到1的完整开发流程，具备独立开发能力。</p>
+                </div>
+                <div class="highlight-card">
+                    <div class="icon">🔮</div>
+                    <h4>前沿范式理解</h4>
+                    <p>深入理解Vibe Coding、Harness等前沿开发范式，把握技术发展趋势。</p>
+                </div>
+                <div class="highlight-card">
+                    <div class="icon">🎖️</div>
+                    <h4>工程效率提升</h4>
+                    <p>具备运用AI工具提升工程效率的核心能力，成为高效开发者。</p>
+                </div>
+                <div class="highlight-card">
+                    <div class="icon">🎓</div>
+                    <h4>职业竞争力</h4>
+                    <p>为后续毕业设计与企业实习奠定坚实基础，增强就业竞争力。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
